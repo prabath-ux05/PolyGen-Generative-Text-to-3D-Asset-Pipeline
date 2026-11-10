@@ -30,3 +30,4 @@ def test_health_endpoint():
     assert data["app"] == "PolyGen API"
     assert data["status"] == "healthy"
     assert data["version"] == "0.1.0"
+

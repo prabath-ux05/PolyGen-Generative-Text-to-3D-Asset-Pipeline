@@ -24,3 +24,4 @@ def health_check():
         "status": "healthy",
         "version": "0.1.0",
     }
+
