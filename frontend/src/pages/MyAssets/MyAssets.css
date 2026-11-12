@@ -1,0 +1,60 @@
+/* MyAssets Page */
+.my-assets-page { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+
+.my-assets-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.my-assets-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.my-assets-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.my-assets-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.my-assets-search-input {
+  padding-left: 32px;
+  width: 220px;
+}
+
+.my-assets-view-toggle {
+  display: flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.view-toggle-btn {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.view-toggle-btn:hover { color: var(--text-primary); }
+
+.view-toggle-active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}

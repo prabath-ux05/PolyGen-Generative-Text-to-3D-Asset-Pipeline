@@ -1,0 +1,93 @@
+/* ============================================================
+   StatsCard Component
+   ============================================================ */
+
+.stats-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  cursor: default;
+  transition: var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,92,252,0.4), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.stats-card:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stats-card:hover::after { opacity: 1; }
+
+.stats-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-card-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stats-card-change {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+}
+
+.stats-card-change-positive {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.stats-card-change-negative {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.stats-card-change-neutral {
+  color: var(--text-muted);
+  background: var(--bg-active);
+}
+
+.stats-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.stats-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}

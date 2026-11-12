@@ -1,0 +1,158 @@
+/* ============================================================
+   EmptyState Component
+   ============================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-6);
+  min-height: 340px;
+}
+
+/* ── Visual Area ── */
+.empty-state-visual {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Grid background */
+.empty-grid-wrapper {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+}
+
+.empty-grid {
+  position: absolute;
+  inset: -20px;
+  background-image:
+    linear-gradient(rgba(124, 92, 252, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 92, 252, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  animation: grid-shift 8s linear infinite;
+}
+
+@keyframes grid-shift {
+  0%   { transform: perspective(300px) rotateX(20deg) translateY(0); }
+  100% { transform: perspective(300px) rotateX(20deg) translateY(24px); }
+}
+
+.empty-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 30%, var(--bg-card) 80%);
+}
+
+/* Center icon */
+.empty-icon-ring {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon-inner {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(124, 92, 252, 0.2), var(--shadow-lg);
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.empty-icon {
+  color: var(--accent-primary);
+}
+
+/* Orbiting dots */
+.empty-orbit {
+  position: absolute;
+  inset: -10px;
+  animation: spin 6s linear infinite;
+}
+
+.empty-orbit-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+}
+
+.empty-orbit-dot-1 {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.9;
+  box-shadow: 0 0 8px var(--accent-primary);
+}
+
+.empty-orbit-dot-2 {
+  bottom: 10px;
+  left: 10px;
+  opacity: 0.5;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-secondary);
+}
+
+.empty-orbit-dot-3 {
+  bottom: 10px;
+  right: 10px;
+  opacity: 0.5;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-secondary);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Content ── */
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-state-badge {
+  margin-bottom: var(--space-1);
+}
+
+.empty-state-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.empty-state-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
