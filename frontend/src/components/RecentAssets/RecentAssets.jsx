@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Clock, Download, Eye, MoreHorizontal, CheckCircle, Loader, XCircle } from 'lucide-react'
 import { mockRecentAssets } from '../../data/mockData.js'
