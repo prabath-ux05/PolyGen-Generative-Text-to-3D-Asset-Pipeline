@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from backend.app.api.router import api_router
 from backend.app.core.config import API_VERSION, APP_DESCRIPTION, APP_NAME
 
 app = FastAPI(
@@ -8,21 +9,5 @@ app = FastAPI(
     version=API_VERSION,
 )
 
-
-@app.get("/")
-def read_root():
-    return {
-        "name": APP_NAME,
-        "description": APP_DESCRIPTION,
-        "status": "online",
-        "docs_url": "/docs",
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "app": APP_NAME,
-        "status": "healthy",
-        "version": API_VERSION,
-    }
+# Register central API router
+app.include_router(api_router)
