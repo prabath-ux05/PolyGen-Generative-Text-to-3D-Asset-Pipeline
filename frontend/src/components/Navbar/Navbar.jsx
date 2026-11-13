@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Search,
@@ -12,15 +12,19 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { useToast } from '../../context/ToastContext.jsx'
 import './Navbar.css'
 
 function Navbar({ pageTitles, onMenuToggle }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, isAuthenticated, logout } = useAuth()
+  const { showToast } = useToast()
+
   const [searchValue, setSearchValue] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
   const [unreadCount, setUnreadCount] = useState(3)
   const profileRef = useRef(null)
   const notifRef = useRef(null)
@@ -121,7 +125,14 @@ function Navbar({ pageTitles, onMenuToggle }) {
                     <span className="navbar-dropdown-title">Notifications</span>
                     <button
                       className="navbar-dropdown-action"
-                      onClick={() => setUnreadCount(0)}
+                      onClick={() => {
+                        setUnreadCount(0)
+                        showToast({
+                          title: 'Notifications Cleared',
+                          message: 'All notifications marked as read.',
+                          type: 'info',
+                        })
+                      }}
                     >
                       Mark all read
                     </button>
@@ -149,12 +160,12 @@ function Navbar({ pageTitles, onMenuToggle }) {
                 aria-label="Profile menu"
                 aria-expanded={profileOpen}
               >
-                <div className="navbar-avatar">SP</div>
+                <div className="navbar-avatar">{user?.avatar || 'PG'}</div>
                 <div className="navbar-profile-info">
-                  <span className="navbar-profile-name">Samiksha</span>
+                  <span className="navbar-profile-name">{user?.name ? user.name.split(' ')[0] : 'Creator'}</span>
                   <span className="navbar-profile-plan">
                     <Sparkles size={10} />
-                    Pro Plan
+                    {user?.plan || 'Pro Plan'}
                   </span>
                 </div>
                 <ChevronDown
@@ -166,10 +177,10 @@ function Navbar({ pageTitles, onMenuToggle }) {
               {profileOpen && (
                 <div className="navbar-dropdown navbar-profile-dropdown" role="menu">
                   <div className="navbar-dropdown-header navbar-profile-header">
-                    <div className="navbar-avatar navbar-avatar-lg">SP</div>
+                    <div className="navbar-avatar navbar-avatar-lg">{user?.avatar || 'PG'}</div>
                     <div>
-                      <p className="navbar-dropdown-name">Samiksha Patil</p>
-                      <p className="navbar-dropdown-email">samiksha@polygen.ai</p>
+                      <p className="navbar-dropdown-name">{user?.name || 'PolyGen Creator'}</p>
+                      <p className="navbar-dropdown-email">{user?.email || 'creator@polygen.ai'}</p>
                     </div>
                   </div>
                   <div className="navbar-dropdown-divider" />
@@ -202,7 +213,12 @@ function Navbar({ pageTitles, onMenuToggle }) {
                       role="menuitem"
                       onClick={() => {
                         setProfileOpen(false)
-                        setIsAuthenticated(false)
+                        logout()
+                        showToast({
+                          title: 'Signed Out',
+                          message: 'You have returned to Demo Guest mode.',
+                          type: 'info',
+                        })
                       }}
                     >
                       <LogOut size={15} /> Sign Out
@@ -216,14 +232,14 @@ function Navbar({ pageTitles, onMenuToggle }) {
           <div className="navbar-auth-actions">
             <button
               className="btn btn-ghost btn-sm"
-              onClick={() => setIsAuthenticated(true)}
+              onClick={() => navigate('/login')}
             >
               <LogIn size={15} />
               Log In
             </button>
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => setIsAuthenticated(true)}
+              onClick={() => navigate('/signup')}
             >
               <UserPlus size={15} />
               Sign Up
