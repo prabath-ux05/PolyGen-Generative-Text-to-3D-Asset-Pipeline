@@ -1,4 +1,3 @@
-import React from 'react'
 import { Box, Sparkles, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import './EmptyState.css'
