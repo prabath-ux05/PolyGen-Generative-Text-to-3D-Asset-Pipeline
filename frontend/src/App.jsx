@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar/Sidebar.jsx'
 import Navbar from './components/Navbar/Navbar.jsx'
@@ -9,6 +9,10 @@ import GenerationHistory from './pages/GenerationHistory/GenerationHistory.jsx'
 import Templates from './pages/Templates/Templates.jsx'
 import Settings from './pages/Settings/Settings.jsx'
 import HelpSupport from './pages/HelpSupport/HelpSupport.jsx'
+import Login from './pages/Auth/Login.jsx'
+import SignUp from './pages/Auth/SignUp.jsx'
+import { AuthProvider } from './context/AuthContext.jsx'
+import { ToastProvider } from './context/ToastContext.jsx'
 import './styles/app.css'
 
 const pageTitles = {
@@ -25,27 +29,43 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="app-layout">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="app-main">
-        <Navbar
-          pageTitles={pageTitles}
-          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-        />
-        <main className="app-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/create" element={<CreateModel />} />
-            <Route path="/assets" element={<MyAssets />} />
-            <Route path="/history" element={<GenerationHistory />} />
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/help" element={<HelpSupport />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
+    <AuthProvider>
+      <ToastProvider>
+        <Routes>
+          {/* ── Standalone Authentication Pages (Day 2 Task 1 & 5) ── */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+
+          {/* ── Main Application Shell ── */}
+          <Route
+            path="/*"
+            element={
+              <div className="app-layout">
+                <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <div className="app-main">
+                  <Navbar
+                    pageTitles={pageTitles}
+                    onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+                  />
+                  <main className="app-content">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/create" element={<CreateModel />} />
+                      <Route path="/assets" element={<MyAssets />} />
+                      <Route path="/history" element={<GenerationHistory />} />
+                      <Route path="/templates" element={<Templates />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/help" element={<HelpSupport />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </main>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </ToastProvider>
+    </AuthProvider>
   )
 }
 
