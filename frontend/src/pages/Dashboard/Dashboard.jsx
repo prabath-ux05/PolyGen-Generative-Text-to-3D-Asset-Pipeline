@@ -1,23 +1,39 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Zap, Info } from 'lucide-react'
 import StatsCard from '../../components/StatsCard/StatsCard.jsx'
 import PromptInput from '../../components/PromptInput/PromptInput.jsx'
 import RecentAssets from '../../components/RecentAssets/RecentAssets.jsx'
 import EmptyState from '../../components/EmptyState/EmptyState.jsx'
+import { useToast } from '../../context/ToastContext.jsx'
 import { mockStats } from '../../data/mockData.js'
 import './Dashboard.css'
 
 function Dashboard() {
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [lastPrompt, setLastPrompt] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
   function handleGenerate(prompt) {
     setIsGenerating(true)
     setLastPrompt(prompt)
-    // TODO (Day 2): POST to /api/generate with { prompt }
-    setTimeout(() => setIsGenerating(false), 2000)
+
+    showToast({
+      title: 'Prompt Submitted',
+      message: `Queued generation for: "${prompt.length > 50 ? prompt.slice(0, 50) + '…' : prompt}"`,
+      type: 'info',
+    })
+
+    // Simulated pipeline submission
+    setTimeout(() => {
+      setIsGenerating(false)
+      showToast({
+        title: 'Pipeline Job Dispatched',
+        message: 'Mock generation initialized. Asset will be mapped to the 3D viewer when inference engine connects.',
+        type: 'success',
+      })
+    }, 2200)
   }
 
   return (
@@ -33,7 +49,7 @@ function Dashboard() {
             Create Anything in <span className="gradient-text">3D</span>
           </h1>
           <p className="dashboard-hero-desc">
-            Describe any object, scene, or character in natural language and PolyGen's
+            Describe any object, scene, or character in natural language and PolyGen&apos;s
             AI pipeline will generate a production-ready 3D asset with geometry,
             textures, and clean topology — in seconds.
           </p>
@@ -46,7 +62,7 @@ function Dashboard() {
 
       {/* ── Prompt Input ── */}
       <section className="dashboard-section">
-        <PromptInput onGenerate={handleGenerate} />
+        <PromptInput onGenerate={handleGenerate} isProcessing={isGenerating} />
 
         {/* Generation Status */}
         {isGenerating && (
