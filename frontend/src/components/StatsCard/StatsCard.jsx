@@ -1,4 +1,3 @@
-import React from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import './StatsCard.css'
