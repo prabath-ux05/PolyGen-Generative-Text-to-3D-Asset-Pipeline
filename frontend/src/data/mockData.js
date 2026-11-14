@@ -108,14 +108,14 @@ export const mockRecentAssets = [
   },
 ]
 
-// [MOCK] Example prompt suggestions
+// [MOCK] Example prompt suggestions (Day 2 requirements)
 export const promptSuggestions = [
-  'A detailed Viking longship with dragon prow and oars',
-  'Futuristic robot with glowing blue eyes and mechanical joints',
-  'Ancient Egyptian temple with hieroglyphs and sandstone columns',
-  'Steampunk airship with propellers, gears, and brass fittings',
-  'Fantasy mushroom house in an enchanted forest',
-  'Modern sports car with sleek aerodynamic body and LED lights',
+  'A futuristic sports car.',
+  'A medieval castle.',
+  'A low-poly tree.',
+  'A modern office chair.',
+  'A realistic robot.',
+  'A fantasy dragon.',
 ]
 
 // [MOCK] Generation history
