@@ -1,5 +1,4 @@
-import React from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   Wand2,
@@ -11,7 +10,9 @@ import {
   Box,
   X,
   ChevronRight,
+  LogIn,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext.jsx'
 import './Sidebar.css'
 
 const navItems = [
@@ -28,6 +29,7 @@ const bottomItems = [
 ]
 
 function Sidebar({ isOpen, onClose }) {
+  const { user, isAuthenticated } = useAuth()
   return (
     <>
       {/* Mobile overlay */}
@@ -103,16 +105,38 @@ function Sidebar({ isOpen, onClose }) {
         </nav>
 
         {/* ── User Profile ── */}
-        <div className="sidebar-user">
-          <div className="sidebar-user-avatar">SP</div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">Samiksha Patil</span>
-            <span className="sidebar-user-role">Frontend Developer</span>
+        {isAuthenticated && user ? (
+          <div className="sidebar-user">
+            <div className="sidebar-user-avatar">{user.avatar || 'PG'}</div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{user.name}</span>
+              <span className="sidebar-user-role">{user.role || '3D Creator'}</span>
+            </div>
+            <div className="sidebar-user-status">
+              <span className="status-dot status-dot-green" title="Active" />
+            </div>
           </div>
-          <div className="sidebar-user-status">
-            <span className="status-dot status-dot-green" title="Online" />
+        ) : (
+          <div className="sidebar-user">
+            <div className="sidebar-user-avatar" style={{ background: 'var(--bg-card)' }}>
+              G
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">Guest Mode</span>
+              <span className="sidebar-user-role">Demo Access</span>
+            </div>
+            <Link
+              to="/login"
+              onClick={onClose}
+              className="btn btn-primary btn-sm"
+              style={{ padding: '6px 10px', fontSize: '11px', gap: '4px' }}
+              title="Sign in"
+            >
+              <LogIn size={12} />
+              Sign In
+            </Link>
           </div>
-        </div>
+        )}
       </aside>
     </>
   )
