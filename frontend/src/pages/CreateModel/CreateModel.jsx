@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Wand2, Settings2, Sliders, Info } from 'lucide-react'
 import PromptInput from '../../components/PromptInput/PromptInput.jsx'
 import EmptyState from '../../components/EmptyState/EmptyState.jsx'
+import { useToast } from '../../context/ToastContext.jsx'
 import './CreateModel.css'
 
 const qualityOptions = ['Draft', 'Standard', 'High', 'Ultra']
@@ -11,6 +12,7 @@ const styleOptions   = ['Realistic', 'Stylized', 'Low Poly', 'Sci-Fi', 'Fantasy'
 
 function CreateModel() {
   const location = useLocation()
+  const { showToast } = useToast()
   const selectedTemplate = location.state?.template || null
   const [quality, setQuality]   = useState('Standard')
   const [format, setFormat]     = useState('GLB')
@@ -18,10 +20,22 @@ function CreateModel() {
   const [polyTarget, setPolyTarget] = useState(10000)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  function handleGenerate() {
+  function handleGenerate(promptText) {
     setIsGenerating(true)
-    // TODO (Day 2): POST to /api/generate with { prompt, quality, format, style, polyTarget }
-    setTimeout(() => setIsGenerating(false), 2000)
+    showToast({
+      title: 'Configured Generation Dispatched',
+      message: `Prompt "${promptText.length > 40 ? promptText.slice(0, 40) + '…' : promptText}" queued (${quality} / ${format} / ${style} / ${polyTarget.toLocaleString()} polys).`,
+      type: 'info',
+    })
+
+    setTimeout(() => {
+      setIsGenerating(false)
+      showToast({
+        title: 'Model Synthesis Complete (Mock)',
+        message: 'Mock model ready for inspection. WebGL viewer integration in Day 3.',
+        type: 'success',
+      })
+    }, 2200)
   }
 
   return (
@@ -47,7 +61,7 @@ function CreateModel() {
             </div>
           )}
 
-          <PromptInput onGenerate={handleGenerate} />
+          <PromptInput onGenerate={handleGenerate} isProcessing={isGenerating} />
 
           {isGenerating && (
             <div className="create-config-notice">
