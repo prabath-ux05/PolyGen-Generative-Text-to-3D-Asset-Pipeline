@@ -5,11 +5,13 @@ from backend.app.schemas.generation import (
     MIN_PROMPT_LENGTH,
     GenerationRequest,
     OutputFormat,
+    ServiceUnavailableResponse,
 )
 
 __all__ = [
     "GenerationRequest",
     "OutputFormat",
+    "ServiceUnavailableResponse",
     "MIN_PROMPT_LENGTH",
     "MAX_PROMPT_LENGTH",
 ]

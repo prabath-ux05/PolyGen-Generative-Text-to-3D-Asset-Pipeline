@@ -53,3 +53,13 @@ class GenerationRequest(BaseModel):
                 f"Prompt cannot exceed {MAX_PROMPT_LENGTH} characters."
             )
         return stripped
+
+
+class ServiceUnavailableResponse(BaseModel):
+    """Response contract indicating a service or engine is currently unavailable."""
+
+    detail: str = Field(
+        ...,
+        description="Description of the service unavailability.",
+        examples=["Text-to-3D generation engine is not yet integrated."],
+    )
