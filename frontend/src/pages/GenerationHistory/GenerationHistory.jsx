@@ -1,4 +1,3 @@
-import React from 'react'
 import { Calendar, Download, Eye } from 'lucide-react'
 import { mockHistory } from '../../data/mockData.js'
 import './GenerationHistory.css'

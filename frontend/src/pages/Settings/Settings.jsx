@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User, Bell, Shield, Palette, Save, Check } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext.jsx'
+import { useToast } from '../../context/ToastContext.jsx'
 import './Settings.css'
 
 const settingsTabs = [
@@ -10,12 +12,42 @@ const settingsTabs = [
 ]
 
 function Settings() {
+  const { user, updateProfile } = useAuth()
+  const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState('profile')
   const [savedNotice, setSavedNotice] = useState(false)
 
-  function handleSave() {
+  const [fullName, setFullName] = useState(user?.name || 'Samiksha Patil')
+  const [email, setEmail] = useState(user?.email || 'samiksha@polygen.ai')
+  const [role, setRole] = useState(user?.role || 'Frontend Developer')
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '')
+      setEmail(user.email || '')
+      setRole(user.role || '')
+    }
+  }, [user])
+
+  function handleSaveProfile(e) {
+    e.preventDefault()
     setSavedNotice(true)
+    updateProfile({ name: fullName, email, role })
+    showToast({
+      title: 'Profile Updated',
+      message: 'Account profile details saved in local session.',
+      type: 'success',
+    })
     setTimeout(() => setSavedNotice(false), 2000)
+  }
+
+  function handlePasswordUpdate(e) {
+    e.preventDefault()
+    showToast({
+      title: 'Password Updated',
+      message: 'Password simulated update complete (Demo Mode).',
+      type: 'success',
+    })
   }
 
   return (
@@ -45,31 +77,53 @@ function Settings() {
           {activeTab === 'profile' && (
             <div className="settings-section">
               <h2 className="settings-section-title">Profile Information</h2>
-              <div className="settings-form">
+              <form className="settings-form" onSubmit={handleSaveProfile}>
                 <div className="settings-field">
-                  <label>Full Name</label>
-                  <input className="input" defaultValue="Samiksha Patil" />
+                  <label htmlFor="settings-name">Full Name</label>
+                  <input
+                    id="settings-name"
+                    className="input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
                 </div>
                 <div className="settings-field">
-                  <label>Email Address</label>
-                  <input className="input" type="email" defaultValue="samiksha@polygen.ai" />
+                  <label htmlFor="settings-email">Email Address</label>
+                  <input
+                    id="settings-email"
+                    className="input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="settings-field">
-                  <label>Username</label>
-                  <input className="input" defaultValue="samiksha_patil" />
+                  <label htmlFor="settings-role">Role / Title</label>
+                  <input
+                    id="settings-role"
+                    className="input"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                  />
                 </div>
-                <div className="settings-field">
-                  <label>Role / Title</label>
-                  <input className="input" defaultValue="Frontend Developer" />
+                <div className="settings-actions">
+                  <button type="submit" className="btn btn-primary">
+                    {savedNotice ? <Check size={14} /> : <Save size={14} />}
+                    {savedNotice ? 'Saved!' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setFullName(user?.name || '')
+                      setEmail(user?.email || '')
+                      setRole(user?.role || '')
+                    }}
+                  >
+                    Reset
+                  </button>
                 </div>
-              </div>
-              <div className="settings-actions">
-                <button className="btn btn-primary" onClick={handleSave}>
-                  {savedNotice ? <Check size={14} /> : <Save size={14} />}
-                  {savedNotice ? 'Saved!' : 'Save Changes'}
-                </button>
-                <button className="btn btn-ghost">Cancel</button>
-              </div>
+              </form>
             </div>
           )}
 
@@ -101,23 +155,23 @@ function Settings() {
           {activeTab === 'security' && (
             <div className="settings-section">
               <h2 className="settings-section-title">Security</h2>
-              <div className="settings-form">
+              <form className="settings-form" onSubmit={handlePasswordUpdate}>
                 <div className="settings-field">
-                  <label>Current Password</label>
-                  <input className="input" type="password" placeholder="••••••••" />
+                  <label htmlFor="settings-curr-pwd">Current Password</label>
+                  <input id="settings-curr-pwd" className="input" type="password" placeholder="••••••••" required />
                 </div>
                 <div className="settings-field">
-                  <label>New Password</label>
-                  <input className="input" type="password" placeholder="••••••••" />
+                  <label htmlFor="settings-new-pwd">New Password</label>
+                  <input id="settings-new-pwd" className="input" type="password" placeholder="••••••••" required />
                 </div>
                 <div className="settings-field">
-                  <label>Confirm New Password</label>
-                  <input className="input" type="password" placeholder="••••••••" />
+                  <label htmlFor="settings-conf-pwd">Confirm New Password</label>
+                  <input id="settings-conf-pwd" className="input" type="password" placeholder="••••••••" required />
                 </div>
-              </div>
-              <div className="settings-actions">
-                <button className="btn btn-primary">Update Password</button>
-              </div>
+                <div className="settings-actions">
+                  <button type="submit" className="btn btn-primary">Update Password</button>
+                </div>
+              </form>
             </div>
           )}
 

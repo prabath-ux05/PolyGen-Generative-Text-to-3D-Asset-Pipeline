@@ -1,4 +1,3 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LayoutTemplate, Users } from 'lucide-react'
 import { mockTemplates } from '../../data/mockData.js'

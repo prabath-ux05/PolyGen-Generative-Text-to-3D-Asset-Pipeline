@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Grid, List, Search, Filter } from 'lucide-react'
 import RecentAssets from '../../components/RecentAssets/RecentAssets.jsx'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { MessageCircle, BookOpen, Mail, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import './HelpSupport.css'
 
