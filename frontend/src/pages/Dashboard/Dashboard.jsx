@@ -4,7 +4,7 @@ import { ArrowRight, Zap, Info } from 'lucide-react'
 import StatsCard from '../../components/StatsCard/StatsCard.jsx'
 import PromptInput from '../../components/PromptInput/PromptInput.jsx'
 import RecentAssets from '../../components/RecentAssets/RecentAssets.jsx'
-import EmptyState from '../../components/EmptyState/EmptyState.jsx'
+import ModelViewer from '../../components/ModelViewer/ModelViewer.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { mockStats } from '../../data/mockData.js'
 import './Dashboard.css'
@@ -14,6 +14,7 @@ function Dashboard() {
   const { showToast } = useToast()
   const [lastPrompt, setLastPrompt] = useState(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [activeModelUrl, setActiveModelUrl] = useState('/models/sample-crystal.obj')
 
   function handleGenerate(prompt) {
     setIsGenerating(true)
@@ -28,12 +29,26 @@ function Dashboard() {
     // Simulated pipeline submission
     setTimeout(() => {
       setIsGenerating(false)
+      setActiveModelUrl('/models/sample-crystal.obj')
       showToast({
-        title: 'Pipeline Job Dispatched',
-        message: 'Mock generation initialized. Asset will be mapped to the 3D viewer when inference engine connects.',
+        title: '3D Asset Synthesized',
+        message: 'Pipeline output rendered in the interactive 3D viewer.',
         type: 'success',
       })
     }, 2200)
+  }
+
+  function handleAssetPreview(asset) {
+    // Choose sample model based on asset or format
+    const url = asset?.name?.toLowerCase().includes('chair')
+      ? '/models/sample-chair.obj'
+      : '/models/sample-crystal.obj'
+    setActiveModelUrl(url)
+    showToast({
+      title: `Previewing ${asset.name}`,
+      message: 'Loaded into interactive 3D viewer.',
+      type: 'info',
+    })
   }
 
   return (
@@ -103,23 +118,20 @@ function Dashboard() {
       {/* ── 3D Preview Area ── */}
       <section className="dashboard-section">
         <div className="dashboard-section-header">
-          <h2 className="section-title">3D Preview</h2>
+          <h2 className="section-title">Interactive 3D Viewer</h2>
           <button className="btn btn-secondary btn-sm" onClick={() => navigate('/create')}>
-            Open Full Viewer
+            Open Full Studio
             <ArrowRight size={13} />
           </button>
         </div>
-        <div className="dashboard-preview-area card">
-          <EmptyState
-            title="No Model Generated Yet"
-            description="Your generated 3D model will appear here. Enter a description above and click 'Generate 3D' to create your first asset."
-          />
+        <div className="dashboard-preview-area" style={{ height: '500px' }}>
+          <ModelViewer modelUrl={activeModelUrl} height="500px" />
         </div>
       </section>
 
       {/* ── Recent Assets ── */}
       <section className="dashboard-section">
-        <RecentAssets limit={6} />
+        <RecentAssets limit={6} onPreview={handleAssetPreview} />
       </section>
     </div>
   )

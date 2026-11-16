@@ -83,3 +83,6 @@ generated_assets/textures/*
 *.exr
 *.hdr
 
+# Frontend sample 3D models
+!frontend/public/models/*
+

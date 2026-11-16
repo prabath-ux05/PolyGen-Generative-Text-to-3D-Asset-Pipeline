@@ -95,7 +95,7 @@ function AssetCard({ asset, onPreview }) {
   )
 }
 
-function RecentAssets({ limit = 6, searchQuery = '', viewMode = 'grid' }) {
+function RecentAssets({ limit = 6, searchQuery = '', viewMode = 'grid', onPreview }) {
   const navigate = useNavigate()
   const [filter, setFilter] = useState('all')
   const filters = ['all', 'completed', 'processing', 'failed']
@@ -110,8 +110,12 @@ function RecentAssets({ limit = 6, searchQuery = '', viewMode = 'grid' }) {
     )
     .slice(0, limit)
 
-  function handlePreview() {
-    navigate('/create')
+  function handlePreview(asset) {
+    if (onPreview) {
+      onPreview(asset)
+    } else {
+      navigate('/create', { state: { asset } })
+    }
   }
 
   return (

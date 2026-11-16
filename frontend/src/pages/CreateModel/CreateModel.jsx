@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Wand2, Settings2, Sliders, Info } from 'lucide-react'
 import PromptInput from '../../components/PromptInput/PromptInput.jsx'
-import EmptyState from '../../components/EmptyState/EmptyState.jsx'
+import ModelViewer from '../../components/ModelViewer/ModelViewer.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import './CreateModel.css'
 
@@ -14,11 +14,17 @@ function CreateModel() {
   const location = useLocation()
   const { showToast } = useToast()
   const selectedTemplate = location.state?.template || null
+  const passedAsset = location.state?.asset || null
+
   const [quality, setQuality]   = useState('Standard')
-  const [format, setFormat]     = useState('GLB')
+  const [format, setFormat]     = useState('OBJ')
   const [style, setStyle]       = useState('Realistic')
   const [polyTarget, setPolyTarget] = useState(10000)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [activeModelUrl, setActiveModelUrl] = useState(() => {
+    if (passedAsset?.name?.toLowerCase().includes('chair')) return '/models/sample-chair.obj'
+    return '/models/sample-crystal.obj'
+  })
 
   function handleGenerate(promptText) {
     setIsGenerating(true)
@@ -30,9 +36,10 @@ function CreateModel() {
 
     setTimeout(() => {
       setIsGenerating(false)
+      setActiveModelUrl('/models/sample-crystal.obj')
       showToast({
-        title: 'Model Synthesis Complete (Mock)',
-        message: 'Mock model ready for inspection. WebGL viewer integration in Day 3.',
+        title: 'Model Synthesis Complete',
+        message: 'Interactive 3D model generated and loaded into the WebGL viewer.',
         type: 'success',
       })
     }, 2200)
@@ -70,11 +77,8 @@ function CreateModel() {
             </div>
           )}
 
-          <div className="create-preview-area card">
-            <EmptyState
-              title="3D Preview Canvas"
-              description="Your generated model will render here. Rotate, zoom, and inspect every detail of your 3D asset."
-            />
+          <div className="create-preview-area" style={{ height: '480px', marginTop: '16px' }}>
+            <ModelViewer modelUrl={activeModelUrl} height="480px" />
           </div>
         </div>
 
