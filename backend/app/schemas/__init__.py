@@ -7,11 +7,17 @@ from backend.app.schemas.generation import (
     OutputFormat,
     ServiceUnavailableResponse,
 )
+from backend.app.schemas.generation_job import (
+    GenerationJobResponse,
+    GenerationJobStatus,
+)
 
 __all__ = [
     "GenerationRequest",
     "OutputFormat",
     "ServiceUnavailableResponse",
+    "GenerationJobResponse",
+    "GenerationJobStatus",
     "MIN_PROMPT_LENGTH",
     "MAX_PROMPT_LENGTH",
 ]
