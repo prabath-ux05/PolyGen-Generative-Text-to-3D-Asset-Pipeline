@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Wand2, Settings2, Sliders, Info } from 'lucide-react'
 import PromptInput from '../../components/PromptInput/PromptInput.jsx'
 import ModelViewer from '../../components/ModelViewer/ModelViewer.jsx'
+import GenerationStatusPanel from '../../components/GenerationStatus/GenerationStatusPanel.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
+import {
+  submitGeneration,
+  simulateMockGeneration,
+  ServiceUnavailableError,
+  ValidationError,
+  NetworkError,
+} from '../../services/generationService.js'
 import './CreateModel.css'
 
 const qualityOptions = ['Draft', 'Standard', 'High', 'Ultra']
@@ -21,28 +29,176 @@ function CreateModel() {
   const [style, setStyle]       = useState('Realistic')
   const [polyTarget, setPolyTarget] = useState(10000)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [currentJob, setCurrentJob] = useState(null)
+  const abortControllerRef = useRef(null)
+
   const [activeModelUrl, setActiveModelUrl] = useState(() => {
     if (passedAsset?.name?.toLowerCase().includes('chair')) return '/models/sample-chair.obj'
     return '/models/sample-crystal.obj'
   })
 
-  function handleGenerate(promptText) {
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  async function handleGenerate(promptText, outputFormat) {
+    const targetFormat = (outputFormat || format || 'glb').toLowerCase()
     setIsGenerating(true)
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    const initialJob = {
+      job_id: null,
+      prompt: promptText,
+      output_format: targetFormat,
+      status: 'submitted',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      error_message: null,
+      is_mock: false,
+    }
+    setCurrentJob(initialJob)
+
     showToast({
-      title: 'Configured Generation Dispatched',
-      message: `Prompt "${promptText.length > 40 ? promptText.slice(0, 40) + '…' : promptText}" queued (${quality} / ${format} / ${style} / ${polyTarget.toLocaleString()} polys).`,
+      title: 'Submitting Generation Task',
+      message: `POST /api/v1/generations (${targetFormat.toUpperCase()})`,
       type: 'info',
     })
 
-    setTimeout(() => {
+    try {
+      const response = await submitGeneration({
+        prompt: promptText,
+        outputFormat: targetFormat,
+        signal: controller.signal,
+      })
+
       setIsGenerating(false)
-      setActiveModelUrl('/models/sample-crystal.obj')
+      const jobResponse = {
+        job_id: response.job_id || 'live-job-' + Date.now(),
+        prompt: response.prompt || promptText,
+        output_format: response.output_format || targetFormat,
+        status: response.status || 'pending',
+        created_at: response.created_at || new Date().toISOString(),
+        updated_at: response.updated_at || new Date().toISOString(),
+        error_message: response.error_message || null,
+        is_mock: false,
+      }
+      setCurrentJob(jobResponse)
       showToast({
-        title: 'Model Synthesis Complete',
-        message: 'Interactive 3D model generated and loaded into the WebGL viewer.',
+        title: 'Backend Job Dispatched',
+        message: `Task ID: ${jobResponse.job_id}`,
         type: 'success',
       })
-    }, 2200)
+    } catch (err) {
+      setIsGenerating(false)
+      if (err.name === 'AbortError') return
+
+      if (err instanceof ServiceUnavailableError || err.status === 503) {
+        setCurrentJob({
+          job_id: 'FastAPI (HTTP 503)',
+          prompt: promptText,
+          output_format: targetFormat,
+          status: 'unavailable',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error_message: err.message,
+          is_mock: false,
+        })
+        showToast({
+          title: 'Backend Engine Notice (503)',
+          message: 'Text-to-3D generation engine is not yet integrated.',
+          type: 'warning',
+          duration: 6000,
+        })
+      } else if (err instanceof ValidationError) {
+        setCurrentJob({
+          job_id: 'Validation Error (HTTP 422)',
+          prompt: promptText,
+          output_format: targetFormat,
+          status: 'failed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error_message: err.message,
+          is_mock: false,
+        })
+        showToast({
+          title: 'Request Validation Error',
+          message: err.message,
+          type: 'error',
+        })
+      } else if (err instanceof NetworkError) {
+        setCurrentJob({
+          job_id: 'Network Error',
+          prompt: promptText,
+          output_format: targetFormat,
+          status: 'failed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error_message: err.message,
+          is_mock: false,
+        })
+        showToast({
+          title: 'Backend Offline',
+          message: 'Unable to connect to FastAPI at http://127.0.0.1:8000.',
+          type: 'error',
+          duration: 6000,
+        })
+      } else {
+        setCurrentJob({
+          job_id: 'Error',
+          prompt: promptText,
+          output_format: targetFormat,
+          status: 'failed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error_message: err.message || 'Error communicating with backend.',
+          is_mock: false,
+        })
+        showToast({
+          title: 'Generation Error',
+          message: err.message || 'An error occurred.',
+          type: 'error',
+        })
+      }
+    }
+  }
+
+  function handleSimulateDemo() {
+    if (!currentJob?.prompt) return
+    setIsGenerating(true)
+    showToast({
+      title: 'Starting Pipeline Simulation',
+      message: 'Running mock generation lifecycle (pending → processing → completed)…',
+      type: 'info',
+    })
+
+    simulateMockGeneration({
+      prompt: currentJob.prompt,
+      outputFormat: currentJob.output_format || 'glb',
+      onStatusChange: (updatedJob) => {
+        setCurrentJob(updatedJob)
+        if (updatedJob.status === 'completed') {
+          setIsGenerating(false)
+          setActiveModelUrl(updatedJob.model_url)
+          showToast({
+            title: '3D Asset Synthesized (Demo Mode)',
+            message: 'Model loaded into the studio 3D viewer.',
+            type: 'success',
+          })
+        }
+      },
+    }).catch((err) => {
+      setIsGenerating(false)
+      showToast({ title: 'Simulation Error', message: err.message, type: 'error' })
+    })
   }
 
   return (
@@ -68,13 +224,18 @@ function CreateModel() {
             </div>
           )}
 
-          <PromptInput onGenerate={handleGenerate} isProcessing={isGenerating} />
+          <PromptInput onGenerate={handleGenerate} isProcessing={isGenerating} defaultFormat={format} />
 
-          {isGenerating && (
-            <div className="create-config-notice">
-              <Info size={12} />
-              <span>Mock generation queued with {quality} quality ({format}) — real API integration in Day 2.</span>
-            </div>
+          {currentJob && (
+            <GenerationStatusPanel
+              job={currentJob}
+              onDismiss={() => setCurrentJob(null)}
+              onViewIn3D={(url) => {
+                if (url) setActiveModelUrl(url)
+              }}
+              onSimulatePipeline={handleSimulateDemo}
+              onRetry={() => handleGenerate(currentJob.prompt, currentJob.output_format)}
+            />
           )}
 
           <div className="create-preview-area" style={{ height: '480px', marginTop: '16px' }}>

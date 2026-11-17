@@ -187,6 +187,54 @@
   color: var(--text-secondary, #9ba3c0);
 }
 
+.prompt-footer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.prompt-format-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-elevated, #181c2a);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 10px);
+  padding: 3px 6px;
+}
+
+.prompt-format-label {
+  font-size: 11px;
+  color: var(--text-muted, #5d6480);
+  font-weight: 500;
+  padding: 0 4px;
+}
+
+.prompt-format-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary, #9ba3c0);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-mono, monospace);
+}
+
+.prompt-format-btn:hover:not(:disabled) {
+  color: var(--text-primary, #f0f2ff);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.format-btn-active {
+  background: var(--accent-primary, #7c5cfc);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(124, 92, 252, 0.35);
+}
+
 .prompt-generate-btn {
   min-width: 170px;
   position: relative;

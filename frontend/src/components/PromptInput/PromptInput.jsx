@@ -1,13 +1,15 @@
 import { useState, useRef } from 'react'
 import { Sparkles, ArrowRight, Lightbulb, X, AlertCircle, Loader2 } from 'lucide-react'
 import { promptSuggestions } from '../../data/mockData.js'
+import { MIN_PROMPT_LENGTH, MAX_PROMPT_LENGTH, OutputFormat } from '../../services/generationService.js'
 import './PromptInput.css'
 
-const MAX_CHARS = 500
-const MIN_CHARS = 4
+const MAX_CHARS = MAX_PROMPT_LENGTH
+const MIN_CHARS = MIN_PROMPT_LENGTH
 
-function PromptInput({ onGenerate, isProcessing = false }) {
+function PromptInput({ onGenerate, isProcessing = false, defaultFormat = 'glb' }) {
   const [prompt, setPrompt] = useState('')
+  const [outputFormat, setOutputFormat] = useState(defaultFormat)
   const [isFocused, setIsFocused] = useState(false)
   const [validationError, setValidationError] = useState('')
   const textareaRef = useRef(null)
@@ -42,7 +44,7 @@ function PromptInput({ onGenerate, isProcessing = false }) {
       return
     }
     if (onGenerate) {
-      onGenerate(prompt.trim())
+      onGenerate(prompt.trim(), outputFormat)
     }
   }
 
@@ -140,15 +142,39 @@ function PromptInput({ onGenerate, isProcessing = false }) {
             </span>
           </div>
 
-          <button
-            type="button"
-            className={`btn btn-primary btn-lg prompt-generate-btn ${
-              isProcessing ? 'prompt-btn-loading' : ''
-            }`}
-            onClick={handleGenerate}
-            disabled={isProcessing || isOverLimit}
-            aria-label="Generate 3D model"
-          >
+          {/* Target 3D Output Format Selection */}
+          <div className="prompt-footer-right">
+            <div className="prompt-format-toggle" role="group" aria-label="3D Output Format">
+              <span className="prompt-format-label">Format:</span>
+              <button
+                type="button"
+                className={`prompt-format-btn ${outputFormat === OutputFormat.GLB ? 'format-btn-active' : ''}`}
+                onClick={() => setOutputFormat(OutputFormat.GLB)}
+                disabled={isProcessing}
+                title="Target GLTF/GLB (Web & Realtime ready)"
+              >
+                GLB
+              </button>
+              <button
+                type="button"
+                className={`prompt-format-btn ${outputFormat === OutputFormat.OBJ ? 'format-btn-active' : ''}`}
+                onClick={() => setOutputFormat(OutputFormat.OBJ)}
+                disabled={isProcessing}
+                title="Target Wavefront OBJ (Classic geometry)"
+              >
+                OBJ
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`btn btn-primary btn-lg prompt-generate-btn ${
+                isProcessing ? 'prompt-btn-loading' : ''
+              }`}
+              onClick={handleGenerate}
+              disabled={isProcessing || isOverLimit}
+              aria-label="Generate 3D model"
+            >
             {isProcessing ? (
               <>
                 <Loader2 size={16} className="spin-icon" />
@@ -164,6 +190,7 @@ function PromptInput({ onGenerate, isProcessing = false }) {
           </button>
         </div>
       </div>
+    </div>
 
       {/* ── Selectable Prompt Suggestions (Day 2 Task 3) ── */}
       <div className="prompt-suggestions">
