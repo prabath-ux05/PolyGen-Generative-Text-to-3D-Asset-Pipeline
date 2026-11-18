@@ -13,6 +13,7 @@ import Login from './pages/Auth/Login.jsx'
 import SignUp from './pages/Auth/SignUp.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
+import { AssetProvider } from './context/AssetContext.jsx'
 import './styles/app.css'
 
 const pageTitles = {
@@ -31,7 +32,8 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Routes>
+        <AssetProvider>
+          <Routes>
           {/* ── Standalone Authentication Pages (Day 2 Task 1 & 5) ── */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
@@ -64,6 +66,7 @@ function App() {
             }
           />
         </Routes>
+        </AssetProvider>
       </ToastProvider>
     </AuthProvider>
   )

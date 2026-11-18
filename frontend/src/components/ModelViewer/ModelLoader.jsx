@@ -3,10 +3,20 @@ import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-function ModelLoader({ url, wireframe = false, onLoaded, onError, onProgress }) {
+function ModelLoader({
+  url,
+  textureUrl = null,
+  showTexture = true,
+  wireframe = false,
+  onLoaded,
+  onError,
+  onProgress,
+  onTextureStatus,
+}) {
   const [model, setModel] = useState(null)
   const groupRef = useRef(null)
   const wireframeRef = useRef(wireframe)
+  const activeTextureRef = useRef(null)
 
   useEffect(() => {
     wireframeRef.current = wireframe
@@ -65,17 +75,13 @@ function ModelLoader({ url, wireframe = false, onLoaded, onError, onProgress }) 
               }
             }
 
-            // If OBJ has no material or standard white default, provide PolyGen PBR material
-            if (!child.material || child.material.name === 'default' || !child.material.metalness) {
-              child.material = new THREE.MeshStandardMaterial({
-                color: new THREE.Color(0xa78bfa),
-                roughness: 0.35,
-                metalness: 0.6,
-                wireframe: wireframeRef.current,
-              })
-            } else {
-              child.material.wireframe = wireframeRef.current
-            }
+            // Create PolyGen PBR material
+            child.material = new THREE.MeshStandardMaterial({
+              color: new THREE.Color(0xa78bfa),
+              roughness: 0.35,
+              metalness: 0.6,
+              wireframe: wireframeRef.current,
+            })
 
             child.castShadow = true
             child.receiveShadow = true
@@ -159,6 +165,10 @@ function ModelLoader({ url, wireframe = false, onLoaded, onError, onProgress }) 
       if (loadedObject) {
         disposeThreeObject(loadedObject)
       }
+      if (activeTextureRef.current) {
+        activeTextureRef.current.dispose()
+        activeTextureRef.current = null
+      }
     }
   }, [url, onError, onLoaded, onProgress])
 
@@ -171,6 +181,95 @@ function ModelLoader({ url, wireframe = false, onLoaded, onError, onProgress }) 
       }
     })
   }, [wireframe, model])
+
+  // Handle Texture Loading & Comparison (Task 5)
+  useEffect(() => {
+    if (!model) return
+
+    // If untextured mode is requested or no texture is supplied:
+    if (!textureUrl || !showTexture) {
+      model.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material.map = null
+          child.material.color = new THREE.Color(0xa78bfa) // Default PolyGen clay/standard material
+          child.material.roughness = 0.35
+          child.material.metalness = 0.6
+          child.material.needsUpdate = true
+        }
+      })
+      if (onTextureStatus) {
+        onTextureStatus({
+          status: 'untextured',
+          message: 'Rendering in untextured clay mode.',
+        })
+      }
+      return
+    }
+
+    // Attempt to load 2D texture output
+    if (onTextureStatus) {
+      onTextureStatus({
+        status: 'loading',
+        url: textureUrl,
+        message: 'Loading 2D texture map…',
+      })
+    }
+
+    const textureLoader = new THREE.TextureLoader()
+    textureLoader.load(
+      textureUrl,
+      (loadedTexture) => {
+        if (activeTextureRef.current) {
+          activeTextureRef.current.dispose()
+        }
+        activeTextureRef.current = loadedTexture
+        loadedTexture.colorSpace = THREE.SRGBColorSpace
+        loadedTexture.wrapS = THREE.RepeatWrapping
+        loadedTexture.wrapT = THREE.RepeatWrapping
+
+        model.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.map = loadedTexture
+            child.material.color = new THREE.Color(0xffffff) // White base to show pure texture
+            child.material.roughness = 0.4
+            child.material.metalness = 0.15
+            child.material.needsUpdate = true
+          }
+        })
+
+        if (onTextureStatus) {
+          onTextureStatus({
+            status: 'loaded',
+            url: textureUrl,
+            message: 'Texture successfully applied to 3D mesh.',
+          })
+        }
+      },
+      undefined,
+      (err) => {
+        // Texture loading failed (e.g. missing texture file) -> Apply Fallback Material
+        model.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.map = null
+            // Fallback material: matte slate clay
+            child.material.color = new THREE.Color(0x94a3b8)
+            child.material.roughness = 0.5
+            child.material.metalness = 0.1
+            child.material.needsUpdate = true
+          }
+        })
+
+        if (onTextureStatus) {
+          onTextureStatus({
+            status: 'error',
+            url: textureUrl,
+            error: err?.message || 'Texture file could not be loaded.',
+            message: 'Missing or corrupt texture file. Fallback clay material applied.',
+          })
+        }
+      }
+    )
+  }, [model, textureUrl, showTexture, onTextureStatus])
 
   if (!model) return null
 
@@ -189,8 +288,12 @@ function disposeThreeObject(obj) {
     }
     if (child.material) {
       if (Array.isArray(child.material)) {
-        child.material.forEach((mat) => mat.dispose())
+        child.material.forEach((mat) => {
+          if (mat.map) mat.map.dispose()
+          mat.dispose()
+        })
       } else {
+        if (child.material.map) child.material.map.dispose()
         child.material.dispose()
       }
     }

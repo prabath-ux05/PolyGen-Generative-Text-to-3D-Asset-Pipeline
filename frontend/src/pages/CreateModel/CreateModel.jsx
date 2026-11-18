@@ -5,6 +5,7 @@ import PromptInput from '../../components/PromptInput/PromptInput.jsx'
 import ModelViewer from '../../components/ModelViewer/ModelViewer.jsx'
 import GenerationStatusPanel from '../../components/GenerationStatus/GenerationStatusPanel.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
+import { useAssets } from '../../context/AssetContext.jsx'
 import {
   submitGeneration,
   simulateMockGeneration,
@@ -21,6 +22,7 @@ const styleOptions   = ['Realistic', 'Stylized', 'Low Poly', 'Sci-Fi', 'Fantasy'
 function CreateModel() {
   const location = useLocation()
   const { showToast } = useToast()
+  const { addAsset } = useAssets()
   const selectedTemplate = location.state?.template || null
   const passedAsset = location.state?.asset || null
 
@@ -188,9 +190,36 @@ function CreateModel() {
         if (updatedJob.status === 'completed') {
           setIsGenerating(false)
           setActiveModelUrl(updatedJob.model_url)
+          addAsset({
+            id: 'asset-' + Date.now(),
+            generationId: updatedJob.job_id,
+            name: (updatedJob.prompt.length > 25 ? updatedJob.prompt.slice(0, 25) + '…' : updatedJob.prompt) + ' Model',
+            prompt: updatedJob.prompt,
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+            format: (updatedJob.output_format || 'glb').toUpperCase(),
+            modelUrl: updatedJob.model_url || '/models/sample-crystal.obj',
+            thumbnailColor: '#7c5cfc',
+            meshMetadata: {
+              vertices: 12400,
+              faces: 21800,
+              dimensions: { x: '3.20m', y: '3.20m', z: '3.20m' },
+              polygonTarget: polyTarget,
+              submeshes: 1,
+              topology: 'Watertight Manifold',
+            },
+            textureInfo: {
+              hasTexture: true,
+              textureStatus: 'applied',
+              diffuseUrl: '/textures/crystal-diffuse.png',
+              resolution: '2048 × 2048',
+              textureMapType: 'Diffuse (Albedo PBR)',
+              format: 'PNG',
+            },
+          })
           showToast({
             title: '3D Asset Synthesized (Demo Mode)',
-            message: 'Model loaded into the studio 3D viewer.',
+            message: 'Model loaded into the studio 3D viewer & added to My Assets.',
             type: 'success',
           })
         }
@@ -239,7 +268,11 @@ function CreateModel() {
           )}
 
           <div className="create-preview-area" style={{ height: '480px', marginTop: '16px' }}>
-            <ModelViewer modelUrl={activeModelUrl} height="480px" />
+            <ModelViewer
+              modelUrl={activeModelUrl}
+              textureUrl={passedAsset?.textureInfo?.diffuseUrl || '/textures/crystal-diffuse.png'}
+              height="480px"
+            />
           </div>
         </div>
 

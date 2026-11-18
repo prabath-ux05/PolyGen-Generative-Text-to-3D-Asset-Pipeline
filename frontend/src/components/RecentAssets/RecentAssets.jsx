@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Clock, Download, Eye, MoreHorizontal, CheckCircle, Loader, XCircle } from 'lucide-react'
 import { mockRecentAssets } from '../../data/mockData.js'
+import { useAssets } from '../../context/AssetContext.jsx'
 import './RecentAssets.css'
 
 const statusConfig = {
@@ -100,8 +101,16 @@ function RecentAssets({ limit = 6, searchQuery = '', viewMode = 'grid', onPrevie
   const [filter, setFilter] = useState('all')
   const filters = ['all', 'completed', 'processing', 'failed']
 
+  let assetList = mockRecentAssets
+  try {
+    const assetContext = useAssets()
+    if (assetContext?.assets) assetList = assetContext.assets
+  } catch {
+    // fallback
+  }
+
   const normalizedQuery = searchQuery.trim().toLowerCase()
-  const filtered = mockRecentAssets
+  const filtered = assetList
     .filter(a => filter === 'all' || a.status === filter)
     .filter(a =>
       !normalizedQuery ||

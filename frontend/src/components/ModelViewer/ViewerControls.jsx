@@ -8,6 +8,7 @@ import {
   Minimize2,
   Info,
   Layers,
+  Palette,
   X,
   FileCode,
   Box,
@@ -21,6 +22,9 @@ function ViewerControls({
   onToggleGrid,
   wireframe,
   onToggleWireframe,
+  showTexture = true,
+  onToggleTexture,
+  textureStatus,
   isFullscreen,
   onToggleFullscreen,
   modelStats,
@@ -164,6 +168,20 @@ function ViewerControls({
           <Layers size={16} />
         </button>
 
+        {/* Texture Comparison Toggle (Task 5: Compare textured vs untextured clay) */}
+        {onToggleTexture && (
+          <button
+            type="button"
+            className={`viewer-tool-btn ${showTexture ? 'viewer-tool-active' : ''}`}
+            onClick={onToggleTexture}
+            title={showTexture ? 'Texture Active: Click to view Untextured Clay' : 'Clay Active: Click to apply 2D Texture'}
+            aria-label="Toggle Texture Shading"
+            aria-pressed={showTexture}
+          >
+            <Palette size={16} />
+          </button>
+        )}
+
         <div className="viewer-tool-separator" />
 
         {/* Model Information */}
@@ -243,6 +261,24 @@ function ViewerControls({
                     {modelStats.dimensions
                       ? `${modelStats.dimensions.x} × ${modelStats.dimensions.y} × ${modelStats.dimensions.z}`
                       : 'Normalized (3 units)'}
+                  </span>
+                </div>
+                <div className="viewer-info-row">
+                  <span className="info-label">Texture Map</span>
+                  <span className={`info-val ${
+                    textureStatus?.status === 'loaded'
+                      ? 'info-val-success'
+                      : textureStatus?.status === 'error'
+                      ? 'info-val-warning'
+                      : ''
+                  }`}>
+                    {textureStatus?.status === 'loaded'
+                      ? (showTexture ? 'Textured (PBR Map)' : 'Untextured Clay (Comparison)')
+                      : textureStatus?.status === 'error'
+                      ? 'Missing (Fallback Clay)'
+                      : showTexture
+                      ? 'PBR Shading'
+                      : 'Untextured Clay'}
                   </span>
                 </div>
                 <div className="viewer-info-row">

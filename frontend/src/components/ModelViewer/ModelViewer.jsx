@@ -10,11 +10,14 @@ const DEFAULT_CAMERA_POS = [3.5, 2.5, 4.5]
 
 function SceneContent({
   modelUrl,
+  textureUrl,
+  showTexture,
   wireframe,
   showGrid,
   onModelLoaded,
   onModelError,
   onModelProgress,
+  onTextureStatus,
   controlsRef,
 }) {
   return (
@@ -52,10 +55,13 @@ function SceneContent({
       {modelUrl && (
         <ModelLoader
           url={modelUrl}
+          textureUrl={textureUrl}
+          showTexture={showTexture}
           wireframe={wireframe}
           onLoaded={onModelLoaded}
           onError={onModelError}
           onProgress={onModelProgress}
+          onTextureStatus={onTextureStatus}
         />
       )}
 
@@ -75,6 +81,8 @@ function SceneContent({
 
 function ModelViewer({
   modelUrl: initialModelUrl = '',
+  textureUrl: initialTextureUrl = null,
+  showTexture: initialShowTexture = true,
   onModelLoaded: parentOnLoaded,
   height = '480px',
   className = '',
@@ -83,6 +91,10 @@ function ModelViewer({
   const controlsRef = useRef(null)
 
   const [currentUrl, setCurrentUrl] = useState(initialModelUrl)
+  const [currentTextureUrl, setCurrentTextureUrl] = useState(initialTextureUrl)
+  const [showTexture, setShowTexture] = useState(initialShowTexture)
+  const [textureStatus, setTextureStatus] = useState(null)
+
   const [modelStats, setModelStats] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
@@ -106,6 +118,14 @@ function ModelViewer({
       }
     }
   }, [initialModelUrl])
+
+  useEffect(() => {
+    setCurrentTextureUrl(initialTextureUrl)
+  }, [initialTextureUrl])
+
+  useEffect(() => {
+    setShowTexture(initialShowTexture)
+  }, [initialShowTexture])
 
   // Fullscreen change listener
   useEffect(() => {
@@ -135,6 +155,10 @@ function ModelViewer({
 
   const handleModelProgress = useCallback((percent) => {
     setLoadProgress(percent)
+  }, [])
+
+  const handleTextureStatus = useCallback((statusObj) => {
+    setTextureStatus(statusObj)
   }, [])
 
   // Controls Handlers
@@ -222,11 +246,14 @@ function ModelViewer({
         >
           <SceneContent
             modelUrl={currentUrl}
+            textureUrl={currentTextureUrl}
+            showTexture={showTexture}
             wireframe={wireframe}
             showGrid={showGrid}
             onModelLoaded={handleModelLoaded}
             onModelError={handleModelError}
             onModelProgress={handleModelProgress}
+            onTextureStatus={handleTextureStatus}
             controlsRef={controlsRef}
           />
         </Canvas>
@@ -252,6 +279,13 @@ function ModelViewer({
         />
       )}
 
+      {/* Texture Notice Overlay when texture is missing or fallback applied */}
+      {textureStatus?.status === 'error' && (
+        <div className="viewer-texture-notice" role="alert">
+          <span>⚠️ {textureStatus.message}</span>
+        </div>
+      )}
+
       {/* ── Toolbar & Top Controls ── */}
       <ViewerControls
         onResetView={handleResetView}
@@ -261,6 +295,9 @@ function ModelViewer({
         onToggleGrid={() => setShowGrid((v) => !v)}
         wireframe={wireframe}
         onToggleWireframe={() => setWireframe((v) => !v)}
+        showTexture={showTexture}
+        onToggleTexture={() => setShowTexture((v) => !v)}
+        textureStatus={textureStatus}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
         modelStats={modelStats}
