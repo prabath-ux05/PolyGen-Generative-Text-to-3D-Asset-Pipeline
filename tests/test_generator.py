@@ -229,3 +229,12 @@ def test_generation_function_receives_clean_prompt(setup_generator):
     )
 
     assert received["prompt"] == "A wooden chair"
+def test_pipeline_rejects_invalid_mesh_before_export(setup_generator):
+    generator, manager, _, _ = setup_generator
+
+    generator.generation_fn = lambda prompt, components: trimesh.Trimesh()
+
+    with pytest.raises(GenerationError):
+        generator.generate("A wooden chair")
+
+    assert manager.get_status("shap-e") == ModelStatus.FAILED

@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-import trimesh
-
 from ai_generation.model_manager import ModelManager, ModelStatus
 from ai_generation.models.model_loader import ShapEModelLoader
 from ai_generation.prompt_processor import PromptProcessor
 from ai_generation.exporter import MeshExporter
 from ai_generation.generation_metadata import GenerationMetadata
 from ai_generation.performance_monitor import PerformanceMonitor
+from ai_generation.generation_validator import MeshValidator
 
 
 class GenerationError(RuntimeError):
@@ -26,6 +25,7 @@ class GenerationResult:
     metadata: GenerationMetadata
     performance: object
     processed_prompt: object
+    validation: object
 
     def to_dict(self):
         """Convert the generation result into a dictionary."""
@@ -34,11 +34,12 @@ class GenerationResult:
             "metadata": self.metadata.to_dict(),
             "performance": self.performance.to_dict(),
             "processed_prompt": self.processed_prompt.to_dict(),
+            "validation": self.validation.to_dict(),
         }
 
 
 class TextTo3DGenerator:
-    """Integrate prompt processing, model loading, export and monitoring."""
+    """Integrate prompt processing, validation, export and monitoring."""
 
     MODEL_NAME = "shap-e"
 
@@ -51,6 +52,7 @@ class TextTo3DGenerator:
         performance_monitor: Optional[PerformanceMonitor] = None,
         metadata_directory="artifacts/metadata",
         generation_fn: Optional[Callable] = None,
+        mesh_validator: Optional[MeshValidator] = None,
     ):
         self.model_manager = model_manager or ModelManager()
 
@@ -60,7 +62,10 @@ class TextTo3DGenerator:
 
         self.prompt_processor = prompt_processor or PromptProcessor()
         self.exporter = exporter or MeshExporter()
-        self.performance_monitor = performance_monitor or PerformanceMonitor()
+        self.performance_monitor = (
+            performance_monitor or PerformanceMonitor()
+        )
+        self.mesh_validator = mesh_validator or MeshValidator()
 
         self.metadata_directory = Path(metadata_directory)
         self.generation_fn = generation_fn
@@ -72,24 +77,16 @@ class TextTo3DGenerator:
         filename=None,
         generation_fn=None,
     ):
-        """Generate, validate, export and record a 3D mesh.
-
-        The generation function receives:
-            cleaned_prompt: Processed text prompt.
-            components: Loaded model components.
-
-        It must return a trimesh.Trimesh object.
-        """
+        """Generate, validate, export and record a 3D mesh."""
         selected = False
-        metrics = None
 
         self.performance_monitor.start()
 
         try:
-            # Step 1: Process and validate the prompt.
+            # Step 1: Process prompt.
             processed = self.prompt_processor.process_prompt(prompt)
 
-            # Step 2: Select the configured model.
+            # Step 2: Select model.
             self.model_manager.select_model(self.MODEL_NAME)
             selected = True
 
@@ -101,7 +98,7 @@ class TextTo3DGenerator:
             # Step 3: Load model components.
             components = self.model_loader.load_components()
 
-            # Step 4: Run the generation adapter.
+            # Step 4: Generate mesh.
             generator_function = generation_fn or self.generation_fn
 
             if generator_function is None:
@@ -115,17 +112,17 @@ class TextTo3DGenerator:
                 components,
             )
 
-            # Step 5: Validate the generated mesh.
-            self.exporter.validate_mesh(mesh)
+            # Step 5: Validate geometry and mesh quality.
+            validation = self.mesh_validator.validate_or_raise(mesh)
 
-            # Step 6: Export the mesh.
+            # Step 6: Export only after successful validation.
             output_path = self.exporter.export(
                 mesh,
                 file_format=file_format,
                 filename=filename,
             )
 
-            # Step 7: Mark the model as ready.
+            # Step 7: Update model status.
             self.model_manager.update_status(
                 self.MODEL_NAME,
                 ModelStatus.READY,
@@ -134,7 +131,7 @@ class TextTo3DGenerator:
             # Step 8: Stop performance monitoring.
             metrics = self.performance_monitor.stop()
 
-            # Step 9: Create generation metadata.
+            # Step 9: Create metadata.
             metadata = GenerationMetadata(
                 prompt=processed.cleaned_prompt,
                 model_name=self.MODEL_NAME,
@@ -147,6 +144,7 @@ class TextTo3DGenerator:
                     "word_count": processed.word_count,
                     "character_count": processed.character_count,
                     "performance": metrics.to_dict(),
+                    "validation": validation.to_dict(),
                 },
             )
 
@@ -158,12 +156,12 @@ class TextTo3DGenerator:
                 metadata=metadata,
                 performance=metrics,
                 processed_prompt=processed,
+                validation=validation,
             )
 
         except Exception as exc:
-            # Record failure information.
             if self.performance_monitor.is_running:
-                metrics = self.performance_monitor.stop(error=exc)
+                self.performance_monitor.stop(error=exc)
 
             if selected:
                 try:
