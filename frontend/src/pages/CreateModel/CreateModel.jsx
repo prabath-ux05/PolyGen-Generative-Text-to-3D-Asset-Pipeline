@@ -271,6 +271,8 @@ function CreateModel() {
             <ModelViewer
               modelUrl={activeModelUrl}
               textureUrl={passedAsset?.textureInfo?.diffuseUrl || '/textures/crystal-diffuse.png'}
+              generationId={currentJob?.job_id || passedAsset?.generationId || 'studio-model'}
+              assetName={currentJob?.prompt ? (currentJob.prompt.length > 25 ? currentJob.prompt.slice(0, 25) + '…' : currentJob.prompt) : passedAsset?.name || 'Studio Model'}
               height="480px"
             />
           </div>

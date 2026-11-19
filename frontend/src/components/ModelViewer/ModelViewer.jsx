@@ -6,7 +6,14 @@ import ViewerControls from './ViewerControls.jsx'
 import { ViewerEmptyState, ViewerErrorState, ViewerLoadingState } from './ViewerFallback.jsx'
 import './ModelViewer.css'
 
-const DEFAULT_CAMERA_POS = [3.5, 2.5, 4.5]
+const CAMERA_PRESETS = {
+  reset: [3.5, 2.5, 4.5],
+  fit: [2.8, 2.0, 3.6],
+  front: [0, 0, 5.5],
+  side: [5.5, 0, 0],
+  top: [0, 6.0, 0.001],
+  iso: [4.2, 3.2, 4.2],
+}
 
 function SceneContent({
   modelUrl,
@@ -14,6 +21,7 @@ function SceneContent({
   showTexture,
   wireframe,
   showGrid,
+  lightingPreset,
   onModelLoaded,
   onModelError,
   onModelProgress,
@@ -22,17 +30,44 @@ function SceneContent({
 }) {
   return (
     <>
-      {/* ── Lighting Setup ── */}
-      <ambientLight intensity={0.7} />
-      <directionalLight
-        position={[6, 8, 6]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <directionalLight position={[-6, 4, -4]} intensity={0.5} />
-      <directionalLight position={[0, -4, 0]} intensity={0.2} />
+      {/* ── Lighting Presets (Task 1: Studio, Soft, Default) ── */}
+      {lightingPreset === 'studio' ? (
+        <>
+          <ambientLight intensity={0.35} color="#c7d2fe" />
+          <directionalLight
+            position={[7, 9, 6]}
+            intensity={1.8}
+            color="#ffffff"
+            castShadow
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
+          />
+          <directionalLight position={[-5, 6, -6]} intensity={1.2} color="#a5b4fc" />
+          <directionalLight position={[-6, 2, 4]} intensity={0.4} color="#60a5fa" />
+          <directionalLight position={[0, -3, 0]} intensity={0.2} />
+        </>
+      ) : lightingPreset === 'soft' ? (
+        <>
+          <ambientLight intensity={0.95} color="#f8fafc" />
+          <directionalLight position={[4, 6, 4]} intensity={0.6} color="#fed7aa" />
+          <directionalLight position={[-4, 4, -4]} intensity={0.5} color="#e0e7ff" />
+          <directionalLight position={[0, 5, 0]} intensity={0.4} />
+        </>
+      ) : (
+        /* Default Balanced Lighting */
+        <>
+          <ambientLight intensity={0.7} />
+          <directionalLight
+            position={[6, 8, 6]}
+            intensity={1.2}
+            castShadow
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
+          />
+          <directionalLight position={[-6, 4, -4]} intensity={0.5} />
+          <directionalLight position={[0, -4, 0]} intensity={0.2} />
+        </>
+      )}
 
       {/* ── Reference Grid & Ground Reference ── */}
       {showGrid && (
@@ -83,6 +118,8 @@ function ModelViewer({
   modelUrl: initialModelUrl = '',
   textureUrl: initialTextureUrl = null,
   showTexture: initialShowTexture = true,
+  generationId = null,
+  assetName = null,
   onModelLoaded: parentOnLoaded,
   height = '480px',
   className = '',
@@ -100,10 +137,12 @@ function ModelViewer({
   const [loadProgress, setLoadProgress] = useState(0)
   const [loadError, setLoadError] = useState(null)
 
-  // Viewport Settings
+  // Viewport Settings (Task 1)
   const [showGrid, setShowGrid] = useState(true)
   const [wireframe, setWireframe] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [lightingPreset, setLightingPreset] = useState('default') // 'default' | 'studio' | 'soft'
+  const [backgroundPreset, setBackgroundPreset] = useState('nebula') // 'nebula' | 'studio' | 'black' | 'cyber'
 
   // Sync prop changes
   useEffect(() => {
@@ -161,19 +200,19 @@ function ModelViewer({
     setTextureStatus(statusObj)
   }, [])
 
-  // Controls Handlers
-  const handleResetView = useCallback(() => {
-    if (controlsRef.current) {
-      const controls = controlsRef.current
-      controls.reset()
-      const camera = controls.object
-      if (camera) {
-        camera.position.set(...DEFAULT_CAMERA_POS)
-        camera.lookAt(0, 0, 0)
-      }
-      controls.target.set(0, 0, 0)
-      controls.update()
+  // Camera Preset Controls (Task 1: Reset, Fit, Front, Side, Top, Iso)
+  const handleSetCameraView = useCallback((presetKey) => {
+    if (!controlsRef.current) return
+    const controls = controlsRef.current
+    const targetPos = CAMERA_PRESETS[presetKey] || CAMERA_PRESETS.reset
+    const camera = controls.object
+
+    if (camera) {
+      camera.position.set(...targetPos)
+      camera.lookAt(0, 0, 0)
     }
+    controls.target.set(0, 0, 0)
+    controls.update()
   }, [])
 
   const handleZoomIn = useCallback(() => {
@@ -196,7 +235,6 @@ function ModelViewer({
     if (!containerRef.current) return
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen().catch(() => {
-        // Fallback: local CSS fullscreen
         setIsFullscreen(true)
       })
     } else {
@@ -223,7 +261,6 @@ function ModelViewer({
     setLoadError(null)
     setIsLoading(true)
     setLoadProgress(10)
-    // Trigger reload by re-setting URL
     const reloadUrl = currentUrl
     setCurrentUrl('')
     setTimeout(() => setCurrentUrl(reloadUrl), 50)
@@ -232,7 +269,7 @@ function ModelViewer({
   return (
     <div
       ref={containerRef}
-      className={`model-viewer-container ${
+      className={`model-viewer-container viewer-bg-${backgroundPreset} ${
         isFullscreen ? 'model-viewer-fullscreen' : ''
       } ${className}`}
       style={{ height: isFullscreen ? '100vh' : height }}
@@ -240,7 +277,7 @@ function ModelViewer({
       {/* ── 3D WebGL Canvas ── */}
       <div className="viewer-canvas-wrapper">
         <Canvas
-          camera={{ position: DEFAULT_CAMERA_POS, fov: 45, near: 0.1, far: 1000 }}
+          camera={{ position: CAMERA_PRESETS.reset, fov: 45, near: 0.1, far: 1000 }}
           dpr={[1, 2]}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
@@ -250,6 +287,7 @@ function ModelViewer({
             showTexture={showTexture}
             wireframe={wireframe}
             showGrid={showGrid}
+            lightingPreset={lightingPreset}
             onModelLoaded={handleModelLoaded}
             onModelError={handleModelError}
             onModelProgress={handleModelProgress}
@@ -286,9 +324,9 @@ function ModelViewer({
         </div>
       )}
 
-      {/* ── Toolbar & Top Controls ── */}
+      {/* ── Toolbar & Top Controls (Task 1 & Task 2) ── */}
       <ViewerControls
-        onResetView={handleResetView}
+        onSetCameraView={handleSetCameraView}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         showGrid={showGrid}
@@ -298,16 +336,22 @@ function ModelViewer({
         showTexture={showTexture}
         onToggleTexture={() => setShowTexture((v) => !v)}
         textureStatus={textureStatus}
+        lightingPreset={lightingPreset}
+        onSelectLighting={setLightingPreset}
+        backgroundPreset={backgroundPreset}
+        onSelectBackground={setBackgroundPreset}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
         modelStats={modelStats}
         currentModelUrl={currentUrl}
+        generationId={generationId}
+        assetName={assetName}
         onSelectModel={handleSelectModel}
       />
 
       {/* Navigation Hint */}
       <div className="viewer-instructions-hint" aria-hidden="true">
-        <span>Rotate: Left Click + Drag | Pan: Right Click | Zoom: Scroll</span>
+        <span>Rotate: Left Click | Pan: Right Click | Zoom: Scroll</span>
       </div>
     </div>
   )

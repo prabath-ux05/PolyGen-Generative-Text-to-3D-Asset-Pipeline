@@ -271,7 +271,12 @@ function Dashboard() {
           </button>
         </div>
         <div className="dashboard-preview-area" style={{ height: '500px' }}>
-          <ModelViewer modelUrl={activeModelUrl} height="500px" />
+          <ModelViewer
+            modelUrl={activeModelUrl}
+            generationId={currentJob?.job_id || 'sample-model-preview'}
+            assetName={currentJob?.prompt ? currentJob.prompt.slice(0, 24) : 'Sample Crystal'}
+            height="500px"
+          />
         </div>
       </section>
 
