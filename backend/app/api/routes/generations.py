@@ -5,8 +5,15 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from backend.app.schemas.generation import GenerationRequest, ServiceUnavailableResponse
-from backend.app.schemas.generation_job import GenerationJobResponse
-from backend.app.services.generation_job_service import generation_job_service
+from backend.app.schemas.generation_job import (
+    GenerationJobResponse,
+    GenerationJobStatusUpdateRequest,
+)
+from backend.app.services.generation_job_service import (
+    InvalidJobTransitionError,
+    JobNotFoundError,
+    generation_job_service,
+)
 
 router = APIRouter(prefix="/generations", tags=["generations"])
 
@@ -82,3 +89,59 @@ def get_generation_job(job_id: UUID) -> GenerationJobResponse:
             detail=f"Generation job with ID '{job_id}' not found.",
         )
     return job
+
+
+@router.patch(
+    "/{job_id}/status",
+    response_model=GenerationJobResponse,
+    summary="Update generation job status",
+    description="Update the lifecycle status of a Text-to-3D generation job according to valid transition rules.",
+    responses={
+        status.HTTP_200_OK: {
+            "model": GenerationJobResponse,
+            "description": "Generation job status successfully updated.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Generation job not found.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "Invalid lifecycle state transition.",
+        },
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            "description": "Validation error (invalid UUID or status value).",
+        },
+    },
+)
+def update_generation_job_status(
+    job_id: UUID,
+    request: GenerationJobStatusUpdateRequest,
+) -> GenerationJobResponse:
+    """Update the lifecycle status of an existing generation job.
+
+    Args:
+        job_id: The UUID of the generation job.
+        request: Target status and optional error message.
+
+    Returns:
+        The updated GenerationJobResponse object.
+
+    Raises:
+        HTTPException: 404 if the job is not found.
+        HTTPException: 409 if the lifecycle transition is invalid.
+    """
+    try:
+        return generation_job_service.update_job_status(
+            job_id=job_id,
+            new_status=request.status,
+            error_message=request.error_message,
+        )
+    except JobNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except InvalidJobTransitionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc

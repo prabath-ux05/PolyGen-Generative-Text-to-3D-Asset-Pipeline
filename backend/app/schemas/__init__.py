@@ -10,6 +10,7 @@ from backend.app.schemas.generation import (
 from backend.app.schemas.generation_job import (
     GenerationJobResponse,
     GenerationJobStatus,
+    GenerationJobStatusUpdateRequest,
 )
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "ServiceUnavailableResponse",
     "GenerationJobResponse",
     "GenerationJobStatus",
+    "GenerationJobStatusUpdateRequest",
     "MIN_PROMPT_LENGTH",
     "MAX_PROMPT_LENGTH",
 ]

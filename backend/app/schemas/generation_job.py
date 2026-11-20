@@ -82,3 +82,18 @@ class GenerationJobResponse(BaseModel):
                 f"Prompt cannot exceed {MAX_PROMPT_LENGTH} characters."
             )
         return stripped
+
+
+class GenerationJobStatusUpdateRequest(BaseModel):
+    """Request payload for updating the lifecycle status of a generation job."""
+
+    status: GenerationJobStatus = Field(
+        ...,
+        description="Target lifecycle status for the generation job.",
+        examples=[GenerationJobStatus.PROCESSING],
+    )
+    error_message: str | None = Field(
+        default=None,
+        description="Optional failure explanation if transitioning to failed.",
+        examples=["Generation timed out during mesh synthesis."],
+    )
