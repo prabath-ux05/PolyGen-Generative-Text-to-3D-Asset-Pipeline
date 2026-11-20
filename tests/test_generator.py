@@ -238,3 +238,56 @@ def test_pipeline_rejects_invalid_mesh_before_export(setup_generator):
         generator.generate("A wooden chair")
 
     assert manager.get_status("shap-e") == ModelStatus.FAILED
+import pytest
+
+from ai_generation.error_handler import ErrorCode
+from ai_generation.generator import GenerationError
+
+
+def test_invalid_prompt_returns_structured_error(setup_generator):
+    generator, _, _, _ = setup_generator
+
+    with pytest.raises(GenerationError) as captured:
+        generator.generate("")
+
+    assert captured.value.code == ErrorCode.INVALID_PROMPT
+    assert captured.value.stage == "prompt_processing"
+
+
+def test_inference_failure_returns_structured_error(setup_generator):
+    generator, manager, _, _ = setup_generator
+
+    def failing_generation(prompt, components):
+        raise RuntimeError("Inference crashed")
+
+    with pytest.raises(GenerationError) as captured:
+        generator.generate(
+            "A wooden chair",
+            generation_fn=failing_generation,
+        )
+
+    assert captured.value.code == ErrorCode.INFERENCE_FAILED
+    assert captured.value.stage == "model_inference"
+    assert manager.get_status("shap-e").value == "failed"
+
+
+def test_missing_generation_adapter_has_configuration_code(tmp_path):
+    from ai_generation.generator import TextTo3DGenerator
+    from ai_generation.model_manager import ModelManager
+    from ai_generation.exporter import MeshExporter
+
+    class FakeLoader:
+        def load_components(self):
+            return {}
+
+    generator = TextTo3DGenerator(
+        model_manager=ModelManager(device="cpu"),
+        model_loader=FakeLoader(),
+        exporter=MeshExporter(tmp_path / "generated"),
+        metadata_directory=tmp_path / "metadata",
+    )
+
+    with pytest.raises(GenerationError) as captured:
+        generator.generate("A wooden chair")
+
+    assert captured.value.code == ErrorCode.CONFIGURATION_ERROR

@@ -11,10 +11,11 @@ from ai_generation.exporter import MeshExporter
 from ai_generation.generation_metadata import GenerationMetadata
 from ai_generation.performance_monitor import PerformanceMonitor
 from ai_generation.generation_validator import MeshValidator
-
-
-class GenerationError(RuntimeError):
-    """Raised when the generation pipeline fails."""
+from ai_generation.error_handler import (
+    ErrorCode,
+    ErrorHandler,
+    GenerationError,
+)
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,7 @@ class GenerationResult:
 
 
 class TextTo3DGenerator:
-    """Integrate prompt processing, validation, export and monitoring."""
+    """Integrate generation, validation, export and error handling."""
 
     MODEL_NAME = "shap-e"
 
@@ -53,6 +54,7 @@ class TextTo3DGenerator:
         metadata_directory="artifacts/metadata",
         generation_fn: Optional[Callable] = None,
         mesh_validator: Optional[MeshValidator] = None,
+        error_handler: Optional[ErrorHandler] = None,
     ):
         self.model_manager = model_manager or ModelManager()
 
@@ -66,6 +68,7 @@ class TextTo3DGenerator:
             performance_monitor or PerformanceMonitor()
         )
         self.mesh_validator = mesh_validator or MeshValidator()
+        self.error_handler = error_handler or ErrorHandler()
 
         self.metadata_directory = Path(metadata_directory)
         self.generation_fn = generation_fn
@@ -77,16 +80,16 @@ class TextTo3DGenerator:
         filename=None,
         generation_fn=None,
     ):
-        """Generate, validate, export and record a 3D mesh."""
+        """Generate a mesh and convert failures into structured errors."""
         selected = False
+        stage = "prompt_processing"
 
         self.performance_monitor.start()
 
         try:
-            # Step 1: Process prompt.
             processed = self.prompt_processor.process_prompt(prompt)
 
-            # Step 2: Select model.
+            stage = "model_selection"
             self.model_manager.select_model(self.MODEL_NAME)
             selected = True
 
@@ -95,16 +98,18 @@ class TextTo3DGenerator:
                 ModelStatus.LOADING,
             )
 
-            # Step 3: Load model components.
+            stage = "model_loading"
             components = self.model_loader.load_components()
 
-            # Step 4: Generate mesh.
+            stage = "model_inference"
             generator_function = generation_fn or self.generation_fn
 
             if generator_function is None:
                 raise GenerationError(
                     "No generation function configured. "
-                    "Provide a Shap-E inference adapter."
+                    "Provide a Shap-E inference adapter.",
+                    code=ErrorCode.CONFIGURATION_ERROR,
+                    stage="configuration",
                 )
 
             mesh = generator_function(
@@ -112,26 +117,26 @@ class TextTo3DGenerator:
                 components,
             )
 
-            # Step 5: Validate geometry and mesh quality.
+            stage = "mesh_validation"
             validation = self.mesh_validator.validate_or_raise(mesh)
 
-            # Step 6: Export only after successful validation.
+            stage = "mesh_export"
             output_path = self.exporter.export(
                 mesh,
                 file_format=file_format,
                 filename=filename,
             )
 
-            # Step 7: Update model status.
+            stage = "model_status_update"
             self.model_manager.update_status(
                 self.MODEL_NAME,
                 ModelStatus.READY,
             )
 
-            # Step 8: Stop performance monitoring.
+            stage = "performance_monitoring"
             metrics = self.performance_monitor.stop()
 
-            # Step 9: Create metadata.
+            stage = "metadata_creation"
             metadata = GenerationMetadata(
                 prompt=processed.cleaned_prompt,
                 model_name=self.MODEL_NAME,
@@ -148,7 +153,7 @@ class TextTo3DGenerator:
                 },
             )
 
-            # Step 10: Save metadata.
+            stage = "metadata_saving"
             metadata.save(self.metadata_directory)
 
             return GenerationResult(
@@ -161,7 +166,10 @@ class TextTo3DGenerator:
 
         except Exception as exc:
             if self.performance_monitor.is_running:
-                self.performance_monitor.stop(error=exc)
+                try:
+                    self.performance_monitor.stop(error=exc)
+                except Exception:
+                    pass
 
             if selected:
                 try:
@@ -172,9 +180,13 @@ class TextTo3DGenerator:
                 except Exception:
                     pass
 
-            if isinstance(exc, GenerationError):
+            error = self.error_handler.handle(
+                exc,
+                stage=stage,
+                context={"model": self.MODEL_NAME},
+            )
+
+            if error is exc:
                 raise
 
-            raise GenerationError(
-                f"Text-to-3D generation failed: {exc}"
-            ) from exc
+            raise error from exc
