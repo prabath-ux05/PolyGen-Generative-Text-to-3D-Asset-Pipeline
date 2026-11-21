@@ -4,7 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
-from backend.app.schemas.generation import GenerationRequest, ServiceUnavailableResponse
+from backend.app.schemas.generation import (
+    ErrorResponse,
+    GenerationRequest,
+    ServiceUnavailableResponse,
+)
 from backend.app.schemas.generation_job import (
     GenerationJobResponse,
     GenerationJobStatusUpdateRequest,
@@ -63,6 +67,7 @@ def create_generation(request: GenerationRequest) -> None:
             "description": "Generation job details successfully retrieved.",
         },
         status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
             "description": "Generation job not found.",
         },
         status.HTTP_422_UNPROCESSABLE_CONTENT: {
@@ -102,9 +107,11 @@ def get_generation_job(job_id: UUID) -> GenerationJobResponse:
             "description": "Generation job status successfully updated.",
         },
         status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
             "description": "Generation job not found.",
         },
         status.HTTP_409_CONFLICT: {
+            "model": ErrorResponse,
             "description": "Invalid lifecycle state transition.",
         },
         status.HTTP_422_UNPROCESSABLE_CONTENT: {

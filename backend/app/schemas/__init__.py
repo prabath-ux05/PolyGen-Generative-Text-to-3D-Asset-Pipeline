@@ -3,6 +3,7 @@
 from backend.app.schemas.generation import (
     MAX_PROMPT_LENGTH,
     MIN_PROMPT_LENGTH,
+    ErrorResponse,
     GenerationRequest,
     OutputFormat,
     ServiceUnavailableResponse,
@@ -17,6 +18,7 @@ __all__ = [
     "GenerationRequest",
     "OutputFormat",
     "ServiceUnavailableResponse",
+    "ErrorResponse",
     "GenerationJobResponse",
     "GenerationJobStatus",
     "GenerationJobStatusUpdateRequest",

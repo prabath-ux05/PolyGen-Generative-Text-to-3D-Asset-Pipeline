@@ -63,3 +63,13 @@ class ServiceUnavailableResponse(BaseModel):
         description="Description of the service unavailability.",
         examples=["Text-to-3D generation engine is not yet integrated."],
     )
+
+
+class ErrorResponse(BaseModel):
+    """Standardized error response payload."""
+
+    detail: str = Field(
+        ...,
+        description="Detailed description of the error.",
+        examples=["Generation job with ID '550e8400-e29b-41d4-a716-446655440000' not found."],
+    )
