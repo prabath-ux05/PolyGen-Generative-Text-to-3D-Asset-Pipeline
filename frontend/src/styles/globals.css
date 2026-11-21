@@ -221,7 +221,7 @@ body {
 .badge-red    { background: var(--error-bg);   color: var(--error);   border: 1px solid rgba(239,68,68,0.25); }
 .badge-blue   { background: var(--info-bg);    color: var(--info);    border: 1px solid rgba(56,189,248,0.25); }
 
-/* ── Input ── */
+/* ── Input & Textarea ── */
 .input {
   width: 100%;
   padding: 10px 14px;
@@ -240,6 +240,56 @@ body {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--accent-glow-sm);
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: var(--transition-fast);
+}
+
+.textarea::placeholder { color: var(--text-muted); }
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow-sm);
+}
+
+.select {
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow-sm);
+}
+
+/* ── Global Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.spin-icon {
+  animation: viewerSpin 1s linear infinite;
 }
 
 /* ── Page heading ── */

@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom'
 import { Calendar, Download, Eye } from 'lucide-react'
 import { mockHistory } from '../../data/mockData.js'
+import { useToast } from '../../context/ToastContext.jsx'
 import './GenerationHistory.css'
 
 const statusColors = {
@@ -9,6 +11,26 @@ const statusColors = {
 }
 
 function GenerationHistory() {
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+
+  function handlePreview(asset) {
+    navigate('/create', { state: { asset } })
+    showToast({
+      title: `Loading ${asset.name}`,
+      message: 'Opening 3D asset in studio viewer.',
+      type: 'info',
+    })
+  }
+
+  function handleDownload(asset) {
+    showToast({
+      title: `Download Initialized`,
+      message: `Downloading ${asset.name} (${asset.format || 'OBJ'}).`,
+      type: 'success',
+    })
+  }
+
   return (
     <div className="history-page">
       <div className="history-header">
@@ -66,10 +88,22 @@ function GenerationHistory() {
                 </td>
                 <td>
                   <div className="history-actions">
-                    <button className="btn btn-ghost btn-sm" disabled={asset.status !== 'completed'} aria-label="Preview">
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={asset.status !== 'completed'}
+                      onClick={() => handlePreview(asset)}
+                      title="Load in 3D Viewer"
+                      aria-label="Preview in 3D"
+                    >
                       <Eye size={13} />
                     </button>
-                    <button className="btn btn-ghost btn-sm" disabled={asset.status !== 'completed'} aria-label="Download">
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={asset.status !== 'completed'}
+                      onClick={() => handleDownload(asset)}
+                      title="Download 3D Model"
+                      aria-label="Download Model"
+                    >
                       <Download size={13} />
                     </button>
                   </div>

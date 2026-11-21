@@ -121,6 +121,8 @@ function AssetInfoModal({
                   modelUrl={asset.modelUrl}
                   textureUrl={hasTexture && !isMissingTexture ? asset.textureInfo.diffuseUrl : null}
                   showTexture={textureMode === 'textured'}
+                  generationId={asset.generationId}
+                  assetName={asset.name}
                   height="100%"
                 />
               ) : asset.status === 'processing' ? (
