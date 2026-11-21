@@ -1,4 +1,4 @@
-﻿"""Coordinate the complete text-to-3D generation workflow."""
+"""Coordinate the complete text-to-3D generation workflow."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +11,7 @@ from ai_generation.exporter import MeshExporter
 from ai_generation.generation_metadata import GenerationMetadata
 from ai_generation.performance_monitor import PerformanceMonitor
 from ai_generation.generation_validator import MeshValidator
+from ai_generation.config import GenerationConfig
 from ai_generation.error_handler import (
     ErrorCode,
     ErrorHandler,
@@ -51,36 +52,52 @@ class TextTo3DGenerator:
         prompt_processor: Optional[PromptProcessor] = None,
         exporter: Optional[MeshExporter] = None,
         performance_monitor: Optional[PerformanceMonitor] = None,
-        metadata_directory="artifacts/metadata",
+        metadata_directory=None,
         generation_fn: Optional[Callable] = None,
         mesh_validator: Optional[MeshValidator] = None,
         error_handler: Optional[ErrorHandler] = None,
+        config: Optional[GenerationConfig] = None,
     ):
-        self.model_manager = model_manager or ModelManager()
+        self.config = config or GenerationConfig.from_env()
+        self.model_manager = model_manager or ModelManager(
+            device=self.config.device
+        )
 
         self.model_loader = model_loader or ShapEModelLoader(
             device=self.model_manager.get_device()
         )
 
-        self.prompt_processor = prompt_processor or PromptProcessor()
-        self.exporter = exporter or MeshExporter()
+        self.prompt_processor = prompt_processor or PromptProcessor(
+            min_length=self.config.min_prompt_length,
+            max_length=self.config.max_prompt_length,
+        )
+        self.exporter = exporter or MeshExporter(
+            output_dir=self.config.output_dir
+        )
         self.performance_monitor = (
             performance_monitor or PerformanceMonitor()
         )
         self.mesh_validator = mesh_validator or MeshValidator()
         self.error_handler = error_handler or ErrorHandler()
 
-        self.metadata_directory = Path(metadata_directory)
+        self.metadata_directory = Path(
+            metadata_directory
+            if metadata_directory is not None
+            else self.config.metadata_dir
+        )
         self.generation_fn = generation_fn
 
     def generate(
         self,
         prompt,
-        file_format="obj",
+        file_format=None,
         filename=None,
         generation_fn=None,
     ):
         """Generate a mesh and convert failures into structured errors."""
+        if file_format is None:
+            file_format = self.config.default_format
+
         selected = False
         stage = "prompt_processing"
 

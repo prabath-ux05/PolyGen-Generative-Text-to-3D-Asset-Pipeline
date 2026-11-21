@@ -128,3 +128,8 @@ Or with verbose output:
 pytest -v backend/tests
 ```
 
+
+
+## AI Generation Engine
+See [AI Generation Engine documentation](docs/ai_generation_engine.md) for configuration, pipeline modules, benchmarking, and test instructions.
+
