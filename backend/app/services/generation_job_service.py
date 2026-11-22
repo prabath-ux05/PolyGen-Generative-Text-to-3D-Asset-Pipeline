@@ -68,6 +68,7 @@ class GenerationJobService:
             created_at=now,
             updated_at=now,
             error_message=None,
+            model_url=None,
         )
 
         self._jobs[job_id] = job
@@ -92,6 +93,7 @@ class GenerationJobService:
         job_id: UUID | str,
         new_status: GenerationJobStatus | str,
         error_message: str | None = None,
+        model_url: str | None = None,
     ) -> GenerationJobResponse:
         """Update the status of an existing generation job according to lifecycle transition rules.
 
@@ -129,12 +131,16 @@ class GenerationJobService:
         resolved_error = (
             error_message if new_status == GenerationJobStatus.FAILED else None
         )
+        resolved_model_url = (
+            model_url if model_url is not None else current_job.model_url
+        )
 
         updated_job = current_job.model_copy(
             update={
                 "status": new_status,
                 "updated_at": now,
                 "error_message": resolved_error,
+                "model_url": resolved_model_url,
             }
         )
 

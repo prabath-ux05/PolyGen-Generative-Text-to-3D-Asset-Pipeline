@@ -29,3 +29,16 @@ def get_cors_origins() -> list[str]:
         if parsed:
             return parsed
     return list(DEFAULT_CORS_ORIGINS)
+
+
+# Pipeline adapter mode configuration:
+# "none" -> unintegrated (returns 503 per Day 4/10 contracts)
+# "synthetic" -> isolated deterministic geometry generation (Stage 2)
+# "neural" -> live neural inference
+DEFAULT_PIPELINE_ADAPTER: str = "none"
+
+
+def get_pipeline_adapter() -> str:
+    """Retrieve active pipeline adapter from environment or default."""
+    return os.getenv("POLYGEN_PIPELINE_ADAPTER", DEFAULT_PIPELINE_ADAPTER).strip().lower()
+

@@ -69,6 +69,11 @@ class GenerationJobResponse(BaseModel):
         description="Error message detailing the failure reason if the job status is failed.",
         examples=["Generation timed out during mesh synthesis."],
     )
+    model_url: str | None = Field(
+        default=None,
+        description="Accessible URL for viewing and downloading the generated 3D asset.",
+        examples=["/api/v1/generations/550e8400-e29b-41d4-a716-446655440000/asset"],
+    )
 
     @field_validator("prompt")
     @classmethod
@@ -96,4 +101,9 @@ class GenerationJobStatusUpdateRequest(BaseModel):
         default=None,
         description="Optional failure explanation if transitioning to failed.",
         examples=["Generation timed out during mesh synthesis."],
+    )
+    model_url: str | None = Field(
+        default=None,
+        description="Optional asset download/view URL if transitioning to completed.",
+        examples=["/api/v1/generations/550e8400-e29b-41d4-a716-446655440000/asset"],
     )
