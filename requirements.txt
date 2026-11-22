@@ -6,17 +6,17 @@ httpx
 # Testing
 pytest
 
-# Core processing
+# Core processing & geometry (Mesh & Texture Engine)
 numpy==1.26.4
 trimesh==5.2.1
 scipy
+Pillow
 
 # PyTorch CPU
 torch==2.14.1
 torchvision==0.29.1
 
 # Shap-E dependencies
-Pillow
 blobfile
 fire
 humanize

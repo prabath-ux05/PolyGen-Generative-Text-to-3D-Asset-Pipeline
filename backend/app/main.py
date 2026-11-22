@@ -1,27 +1,28 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="PolyGen API",
-    description="Generative Text-to-3D Asset Pipeline API",
-    version="0.1.0",
+from backend.app.api.router import api_router
+from backend.app.core.config import (
+    API_VERSION,
+    APP_DESCRIPTION,
+    APP_NAME,
+    get_cors_origins,
 )
 
+app = FastAPI(
+    title=APP_NAME,
+    description=f"{APP_DESCRIPTION} API",
+    version=API_VERSION,
+)
 
-@app.get("/")
-def read_root():
-    return {
-        "name": "PolyGen API",
-        "description": "Generative Text-to-3D Asset Pipeline",
-        "status": "online",
-        "docs_url": "/docs",
-    }
+# Configure CORS for frontend integration (avoiding unrestricted wildcard with credentials)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS", "HEAD"],
+    allow_headers=["*"],
+)
 
-
-@app.get("/health")
-def health_check():
-    return {
-        "app": "PolyGen API",
-        "status": "healthy",
-        "version": "0.1.0",
-    }
-
+# Register central API router
+app.include_router(api_router)
