@@ -1,5 +1,29 @@
+﻿# Backend
 fastapi
 uvicorn
-pytest
 httpx
 
+# Testing
+pytest
+
+# Core processing
+numpy==1.26.4
+trimesh==5.2.1
+scipy
+
+# PyTorch CPU
+torch==2.14.1
+torchvision==0.29.1
+
+# Shap-E dependencies
+Pillow
+blobfile
+fire
+humanize
+requests
+tqdm
+matplotlib
+scikit-image
+
+# OpenAI CLIP
+git+https://github.com/openai/CLIP.git
