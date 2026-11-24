@@ -69,7 +69,6 @@ PolyGen/
 │   ├── error_handler.py          # Centralized error handling
 │   ├── config.py                 # Generation configuration
 │   └── benchmark.py              # Prompt benchmarking and reports
-|   |
 │   ├── texture_generator.py           # Hugging Face texture generation
 │   ├── fallback_texture.py            # Local procedural texture generation
 │   └── texture_workflow.py            # Texture generation + mesh workflow
@@ -95,10 +94,6 @@ PolyGen/
 │   ├── meshes/
 │   └── textures/
 │
-├── docs/                                 # Architecture documentation
-├── .gitignore
-├── README.md
-└── requirements.txt
 ├── docs/                         # Architecture documentation & API specs
 │   └── ai_generation_engine.md   # AI generation engine documentation
 │
