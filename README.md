@@ -32,14 +32,6 @@ PolyGen aims to solve this bottleneck by providing a cohesive pipeline that tran
 | **Frontend & 3D Viewer** | **Samiksha** | Web dashboard, prompt submission interface, real-time status tracking, and 3D asset viewer. | In Progress |
 | **Texture Engine & Mesh Processing** | **Jay** | Texture generation, PBR material application, mesh inspection, UV mapping/validation, and GLB export. | Implemented |
 
-> Note: The Texture Engine & Mesh Processing module has been implemented and tested. Other modules are developed and integrated by their respective team members.
-| **Backend & AI Pipeline Orchestration** | **Team Lead** | API gateway, pipeline orchestration, asset lifecycle, service integration, and storage. | In Progress (Day 1 Scaffold) |
-| **Text-to-3D Generation Engine** | **Janvi** | Prompt processing, Shap-E model management and loading, generation pipeline, mesh validation, OBJ/GLB export, metadata, error handling, performance monitoring, configuration, and benchmarking. | Implemented (Days 1–10; 145 Tests Passed) |
-| **Frontend & 3D Viewer** | **Samiksha** | Web dashboard, prompt submission interface, real-time status tracking, and 3D asset viewer. | Planned (Placeholder) |
-| **Texture Engine & Mesh Processing** | **Jay** | PBR material synthesis, texture baking, retopology, mesh decimation, and format export. | Planned (Placeholder) |
-
-> *Note: Janvi's Text-to-3D Generation Engine has been implemented and tested. The modules assigned to Samiksha and Jay remain scaffolded as initial placeholders and will be implemented in subsequent development phases.*
-
 ---
 
 ## 4. Initial Project Structure
