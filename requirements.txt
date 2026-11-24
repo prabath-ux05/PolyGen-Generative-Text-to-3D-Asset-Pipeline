@@ -1,3 +1,4 @@
+﻿fastapi
 ﻿# Backend
 fastapi
 uvicorn
@@ -27,3 +28,7 @@ scikit-image
 
 # OpenAI CLIP
 git+https://github.com/openai/CLIP.git
+
+# AI Texture Generation (Hugging Face)
+huggingface_hub
+python-dotenv
