@@ -69,7 +69,50 @@ PolyGen/
 │
 ├── mesh_processing/              # [Placeholder] Retopology, decimation & UV unwrapping
 │
-├── frontend/                     # [Placeholder] Web dashboard & 3D viewer
+├── frontend/                         # Web dashboard and interactive 3D asset viewer
+│   ├── public/                       # Static public assets served directly
+│   │   ├── models/                   # Sample 3D test assets (.obj)
+│   │   └── textures/                 # Sample PBR diffuse textures (.png)
+│   ├── src/                          # Application source code
+│   │   ├── components/               # Modular, reusable UI components
+│   │   │   ├── EmptyState/           # Fallback cards and empty gallery placeholder
+│   │   │   ├── GenerationStatus/     # Pipeline lifecycle status panel (pending, processing, 503, completed, failed)
+│   │   │   ├── ModelViewer/          # Interactive 3D WebGL viewport and controls
+│   │   │   │   
+│   │   │   │   
+│   │   │   │   
+│   │   │   │   
+│   │   │   ├── Navbar/               # Top header with search, notifications & auth controls
+│   │   │   ├── PromptInput/          # Prompt textarea, character counter, suggestions & format toggle
+│   │   │   ├── RecentAssets/         # Dashboard recent generation preview cards
+│   │   │   ├── Sidebar/              # Left navigation rail with active page highlights
+│   │   │   ├── StatsCard/            # Generation overview metric summary cards
+│   │   │   └── Toast/                # Floating notification toast component
+│   │   ├── pages/                    # Application route views
+│   │   │   ├── Auth/                 # Authentication pages (Login.jsx, SignUp.jsx) with validation
+│   │   │   ├── CreateModel/          # Dedicated 3D model generation studio & workspace
+│   │   │   ├── Dashboard/            # SaaS dashboard overview with prompt bar & 3D preview
+│   │   │   ├── GenerationHistory/    # Historical log of generated 3D assets and jobs
+│   │   │   ├── HelpSupport/          # API documentation, support & user FAQ
+│   │   │   ├── MyAssets/             # Asset library with search, filtering, and view toggles
+│   │   │   │   
+│   │   │   ├── Settings/             # Generation preferences, formats & API configuration
+│   │   │   └── Templates/            # Starter prompt inspiration & template cards
+│   │   ├── services/                 # Backend API service integration
+│   │   │   
+│   │   ├── context/                  # React Context providers for global state & hooks (useAuth, useAssets, useToast)
+│   │   │   
+│   │   ├── data/                     # Mock data & sample presets
+│   │   │
+│   │   ├── styles/                   # Global style sheets & design tokens
+│   │   │   
+│   │   ├── test/                     # Automated Vitest test suite
+│   │   │  
+│   ├── .eslintrc.cjs                 # ESLint configuration for React & hooks
+│   ├── index.html                    # Single-page HTML document entrypoint
+│   ├── package.json                  # Frontend dependencies, scripts & metadata
+│   ├── vite.config.js                # Vite build configuration & Vitest test runner setup
+│   └── README.md                     # Frontend module architecture & setup documentation
 │
 ├── shared/                       # Shared models, constants, and contracts
 │   └── contracts/
