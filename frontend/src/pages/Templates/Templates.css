@@ -1,0 +1,48 @@
+/* Templates Page */
+.templates-page { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6); }
+.templates-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.template-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.template-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.template-icon-wrap {
+  width: 40px; height: 40px;
+  background: rgba(124,92,252,0.1);
+  border: 1px solid rgba(124,92,252,0.2);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.template-name {
+  font-size: 15px; font-weight: 600; color: var(--text-primary);
+}
+
+.template-desc {
+  font-size: 13px; color: var(--text-muted); line-height: 1.5; flex: 1;
+}
+
+.template-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  margin-top: auto;
+}
+
+.template-uses {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--text-muted);
+}

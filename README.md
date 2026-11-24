@@ -33,6 +33,12 @@ PolyGen aims to solve this bottleneck by providing a cohesive pipeline that tran
 | **Texture Engine & Mesh Processing** | **Jay** | Texture generation, PBR material application, mesh inspection, UV mapping/validation, and GLB export. | Implemented |
 
 > Note: The Texture Engine & Mesh Processing module has been implemented and tested. Other modules are developed and integrated by their respective team members.
+| **Backend & AI Pipeline Orchestration** | **Team Lead** | API gateway, pipeline orchestration, asset lifecycle, service integration, and storage. | In Progress (Day 1 Scaffold) |
+| **Text-to-3D Generation Engine** | **Janvi** | Prompt processing, Shap-E model management and loading, generation pipeline, mesh validation, OBJ/GLB export, metadata, error handling, performance monitoring, configuration, and benchmarking. | Implemented (Days 1–10; 145 Tests Passed) |
+| **Frontend & 3D Viewer** | **Samiksha** | Web dashboard, prompt submission interface, real-time status tracking, and 3D asset viewer. | Planned (Placeholder) |
+| **Texture Engine & Mesh Processing** | **Jay** | PBR material synthesis, texture baking, retopology, mesh decimation, and format export. | Planned (Placeholder) |
+
+> *Note: Janvi's Text-to-3D Generation Engine has been implemented and tested. The modules assigned to Samiksha and Jay remain scaffolded as initial placeholders and will be implemented in subsequent development phases.*
 
 ---
 
@@ -49,6 +55,30 @@ PolyGen/
 │   │   ├── services/                 # Pipeline orchestration & business logic
 │   │   └── main.py                  # FastAPI entrypoint
 │   └── tests/                        # Backend automated tests
+│   │   ├── api/                  # API router definitions
+│   │   ├── core/                 # Core configuration and settings
+│   │   ├── schemas/              # Pydantic schemas / DTOs
+│   │   ├── services/             # Pipeline orchestration & business logic
+│   │   └── main.py               # FastAPI entrypoint & health endpoints
+│   └── tests/                    # Backend automated test suite
+│       └── test_health.py        # Health check & root API tests
+│
+├── ai_generation/                # Text-to-3D AI generation engine
+│   ├── models/
+│   │   └── model_loader.py       # Shap-E model loading
+│   ├── __init__.py
+│   ├── model_manager.py          # Model selection and device management
+│   ├── prompt_processor.py       # Prompt validation and processing
+│   ├── generator.py              # Complete generation workflow
+│   ├── exporter.py               # OBJ and GLB mesh export
+│   ├── generation_validator.py   # Generated mesh validation
+│   ├── generation_metadata.py    # Generation metadata management
+│   ├── performance_monitor.py    # Generation performance tracking
+│   ├── error_handler.py          # Centralized error handling
+│   ├── config.py                 # Generation configuration
+│   └── benchmark.py              # Prompt benchmarking and reports
+│
+├── texture_engine/               # [Placeholder] PBR texture generation & baking
 │
 ├── ai_generation/                    # AI-assisted texture generation
 │   ├── texture_generator.py           # Hugging Face texture generation
@@ -80,6 +110,17 @@ PolyGen/
 ├── .gitignore
 ├── README.md
 └── requirements.txt
+├── docs/                         # Architecture documentation & API specs
+│   └── ai_generation_engine.md   # AI generation engine documentation
+│
+├── tests/                        # AI generation engine automated tests
+│   ├── test_config.py
+│   ├── test_benchmark.py
+│   └── test_pipeline_e2e.py
+│
+├── .gitignore                    # Environment, cache, and large asset exclusions
+├── README.md                     # Project documentation & setup instructions
+└── requirements.txt              # Python project dependencies
 ```
 
 ---
@@ -345,3 +386,6 @@ Run the complete PolyGen test suite:
 python -m pytest -q
 ```
 
+## AI Generation Engine
+
+See [AI Generation Engine documentation](docs/ai_generation_engine.md) for configuration, pipeline modules, benchmarking, and test instructions.

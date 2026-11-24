@@ -1,9 +1,16 @@
 ﻿fastapi
+﻿# Backend
+fastapi
 uvicorn
-pytest
 httpx
-trimesh
-numpy
+
+# Testing
+pytest
+
+# Core processing & geometry (Mesh & Texture Engine)
+numpy==1.26.4
+trimesh==5.2.1
+scipy
 Pillow
 
 # PyTorch CPU
