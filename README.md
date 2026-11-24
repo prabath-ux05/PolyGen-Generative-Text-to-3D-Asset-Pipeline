@@ -78,8 +78,6 @@ PolyGen/
 │   ├── config.py                 # Generation configuration
 │   └── benchmark.py              # Prompt benchmarking and reports
 │
-├── texture_engine/               # [Placeholder] PBR texture generation & baking
-│
 ├── ai_generation/                    # AI-assisted texture generation
 │   ├── texture_generator.py           # Hugging Face texture generation
 │   ├── fallback_texture.py            # Local procedural texture generation
