@@ -236,6 +236,38 @@ class ShapEInferenceAdapter:
             )
             return latents
         except Exception as exc:
+            # Check specifically for CUDA OutOfMemoryError
+            is_cuda_oom = False
+            try:
+                import torch
+
+                if hasattr(torch.cuda, "OutOfMemoryError") and isinstance(
+                    exc, torch.cuda.OutOfMemoryError
+                ):
+                    is_cuda_oom = True
+            except (ImportError, Exception):
+                pass
+
+            if not is_cuda_oom:
+                exc_type_name = type(exc).__name__
+                exc_msg = str(exc).lower()
+                if "outofmemoryerror" in exc_type_name.lower() or (
+                    "out of memory" in exc_msg
+                    and ("cuda" in exc_msg or "gpu" in exc_msg)
+                ):
+                    is_cuda_oom = True
+
+            if is_cuda_oom:
+                try:
+                    self.unload()
+                except Exception:
+                    pass
+
+                raise RuntimeError(
+                    "CUDA out of memory during Shap-E diffusion sampling. "
+                    "Try reducing prompt complexity, lowering karras_steps, or switching to CPU device."
+                ) from exc
+
             raise RuntimeError(
                 f"Failed to sample Shap-E latents: {exc}"
             ) from exc
@@ -261,10 +293,14 @@ class ShapEInferenceAdapter:
             models = self.load_models()
             active_transmitter = models["transmitter"]
 
-        # Support single latent passed from batch
+        # Support single latent passed from batch (list, tuple, or batched tensor)
         single_latent = latent
         if isinstance(latent, (list, tuple)) and len(latent) > 0:
             single_latent = latent[0]
+        elif hasattr(latent, "shape") and hasattr(latent, "__getitem__"):
+            shape = getattr(latent, "shape", ())
+            if len(shape) >= 2 and shape[0] == 1:
+                single_latent = latent[0]
 
         if decode_latent_mesh_fn is not None:
             try:
@@ -322,6 +358,7 @@ class ShapEInferenceAdapter:
             raise MeshValidationError("Decoded mesh is None")
 
         # Unwrap if TorchMesh object with tri_mesh() method
+        source_mesh = decoded_mesh
         if hasattr(decoded_mesh, "tri_mesh") and callable(decoded_mesh.tri_mesh):
             decoded_mesh = decoded_mesh.tri_mesh()
 
@@ -373,7 +410,118 @@ class ShapEInferenceAdapter:
                 f"Failed to construct trimesh.Trimesh: {exc}"
             ) from exc
 
+        # Attach valid vertex colors if available from decoded mesh
+        vertex_colors = self._extract_vertex_colors(decoded_mesh, len(verts))
+        if vertex_colors is None and source_mesh is not decoded_mesh:
+            vertex_colors = self._extract_vertex_colors(source_mesh, len(verts))
+
+        if vertex_colors is not None:
+            try:
+                mesh.visual.vertex_colors = vertex_colors
+            except Exception:
+                pass
+
         return mesh
+
+    @staticmethod
+    def _extract_vertex_colors(
+        mesh_obj: Any, num_vertices: int
+    ) -> Optional[np.ndarray]:
+        """Extract and validate vertex colors from decoded mesh if present."""
+        if mesh_obj is None:
+            return None
+
+        raw_colors = None
+
+        # Check Shap-E vertex_channels dict
+        channels = getattr(mesh_obj, "vertex_channels", None)
+        if (
+            isinstance(channels, dict)
+            and "R" in channels
+            and "G" in channels
+            and "B" in channels
+        ):
+            try:
+                r = (
+                    channels["R"].detach().cpu().numpy()
+                    if hasattr(channels["R"], "detach")
+                    else np.asarray(channels["R"])
+                )
+                g = (
+                    channels["G"].detach().cpu().numpy()
+                    if hasattr(channels["G"], "detach")
+                    else np.asarray(channels["G"])
+                )
+                b = (
+                    channels["B"].detach().cpu().numpy()
+                    if hasattr(channels["B"], "detach")
+                    else np.asarray(channels["B"])
+                )
+                if r.ndim == 1 and g.ndim == 1 and b.ndim == 1:
+                    raw_colors = np.column_stack([r, g, b])
+            except Exception:
+                raw_colors = None
+
+        # Fallback to direct vertex_colors or colors attributes
+        if raw_colors is None:
+            for attr in ("vertex_colors", "colors"):
+                val = getattr(mesh_obj, attr, None)
+                if val is not None:
+                    try:
+                        raw_colors = (
+                            val.detach().cpu().numpy()
+                            if hasattr(val, "detach")
+                            else np.asarray(val)
+                        )
+                        break
+                    except Exception:
+                        raw_colors = None
+
+        if raw_colors is None:
+            return None
+
+        # Validation: Must be 2D array of shape (N, 3) or (N, 4)
+        if not isinstance(raw_colors, np.ndarray) or raw_colors.ndim != 2:
+            return None
+
+        if raw_colors.shape[0] != num_vertices:
+            return None
+
+        if raw_colors.shape[1] not in (3, 4):
+            return None
+
+        # Must be finite
+        if not np.isfinite(raw_colors).all():
+            return None
+
+        # Normalize/convert values:
+        # If float in [0.0, 1.0], scale to [0, 255] uint8
+        # If already [0, 255] integer or float, convert to uint8
+        try:
+            if np.issubdtype(raw_colors.dtype, np.floating):
+                min_val = float(np.min(raw_colors))
+                max_val = float(np.max(raw_colors))
+                if min_val >= 0.0 and max_val <= 1.0:
+                    return np.clip(
+                        np.round(raw_colors * 255.0), 0, 255
+                    ).astype(np.uint8)
+                elif min_val >= 0.0 and max_val <= 255.0:
+                    return np.clip(
+                        np.round(raw_colors), 0, 255
+                    ).astype(np.uint8)
+                else:
+                    return None
+            elif np.issubdtype(raw_colors.dtype, np.integer):
+                min_val = int(np.min(raw_colors))
+                max_val = int(np.max(raw_colors))
+                if min_val >= 0 and max_val <= 255:
+                    return raw_colors.astype(np.uint8)
+                else:
+                    return None
+            else:
+                return None
+        except Exception:
+            return None
 
     def validate_mesh(self, mesh: trimesh.Trimesh) -> Any:
         """Validate the resulting trimesh using MeshValidator.

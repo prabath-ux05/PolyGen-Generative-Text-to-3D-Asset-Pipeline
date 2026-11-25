@@ -14,17 +14,26 @@ from ai_generation.models.shap_e_adapter import ShapEInferenceAdapter
 class FakeShapEMesh:
     """Mock object simulating the output of Shap-E tri_mesh()."""
 
-    def __init__(self, verts=None, faces=None):
+    def __init__(self, verts=None, faces=None, vertex_channels=None, vertex_colors=None):
         box = trimesh.creation.box(extents=(1.0, 1.0, 1.0))
         self.verts = verts if verts is not None else np.asarray(box.vertices, dtype=np.float32)
         self.faces = faces if faces is not None else np.asarray(box.faces, dtype=np.int32)
+        if vertex_channels is not None:
+            self.vertex_channels = vertex_channels
+        if vertex_colors is not None:
+            self.vertex_colors = vertex_colors
 
 
 class FakeTorchMesh:
     """Mock object simulating Shap-E TorchMesh with a .tri_mesh() method."""
 
-    def __init__(self, verts=None, faces=None):
-        self._inner = FakeShapEMesh(verts=verts, faces=faces)
+    def __init__(self, verts=None, faces=None, vertex_channels=None, vertex_colors=None):
+        self._inner = FakeShapEMesh(
+            verts=verts,
+            faces=faces,
+            vertex_channels=vertex_channels,
+            vertex_colors=vertex_colors,
+        )
 
     def tri_mesh(self):
         return self._inner
@@ -35,6 +44,17 @@ class FakeTensor:
 
     def __init__(self, data):
         self._data = np.asarray(data)
+
+    @property
+    def shape(self):
+        return self._data.shape
+
+    def __getitem__(self, item):
+        res = self._data[item]
+        return FakeTensor(res)
+
+    def __len__(self):
+        return len(self._data)
 
     def detach(self):
         return self
@@ -206,6 +226,68 @@ def test_sample_latents_passes_prompt_and_params():
     assert sampled_kwargs["use_fp16"] is False  # cpu device
 
 
+def test_sample_latents_cuda_oom_handling():
+    """Verify that a CUDA OutOfMemoryError triggers unload, cache clearing, and actionable RuntimeError."""
+    adapter = ShapEInferenceAdapter(device="cuda")
+    adapter._model = "fake-model"
+    adapter._transmitter = "fake-transmitter"
+    adapter._diffusion = "fake-diffusion"
+    assert adapter.is_loaded is True
+
+    class MockCUDAOutOfMemoryError(RuntimeError):
+        pass
+
+    original_exc = MockCUDAOutOfMemoryError("CUDA out of memory. Tried to allocate 512.00 MiB")
+
+    def failing_sample(**kwargs):
+        raise original_exc
+
+    with pytest.raises(RuntimeError, match="CUDA out of memory during Shap-E diffusion sampling") as exc_info:
+        adapter.sample_latents(
+            prompt="high resolution castle",
+            model="fake-model",
+            diffusion="fake-diffusion",
+            sample_latents_fn=failing_sample,
+        )
+
+    # Verifies resources were freed
+    assert adapter.is_loaded is False
+    # Verifies original exception is preserved as __cause__
+    assert exc_info.value.__cause__ is original_exc
+
+
+def test_sample_latents_cuda_oom_cleanup_failure_does_not_mask_error():
+    """Verify that if unload() fails during OOM handling, the original cause is still preserved."""
+    adapter = ShapEInferenceAdapter(device="cuda")
+    adapter._model = "fake-model"
+    adapter._transmitter = "fake-transmitter"
+    adapter._diffusion = "fake-diffusion"
+
+    class MockCUDAOutOfMemoryError(RuntimeError):
+        pass
+
+    original_exc = MockCUDAOutOfMemoryError("CUDA out of memory. Driver error.")
+
+    def failing_sample(**kwargs):
+        raise original_exc
+
+    # Sabotage unload() to simulate driver error during cleanup
+    def broken_unload():
+        raise RuntimeError("Cleanup crashed")
+
+    adapter.unload = broken_unload
+
+    with pytest.raises(RuntimeError, match="CUDA out of memory during Shap-E diffusion sampling") as exc_info:
+        adapter.sample_latents(
+            prompt="high resolution castle",
+            model="fake-model",
+            diffusion="fake-diffusion",
+            sample_latents_fn=failing_sample,
+        )
+
+    assert exc_info.value.__cause__ is original_exc
+
+
 # ---------------------------------------------------------------------------
 # Mesh decoding & conversion tests
 # ---------------------------------------------------------------------------
@@ -255,6 +337,49 @@ def test_decode_mesh_with_transmitter_method():
     assert isinstance(mesh, FakeShapEMesh)
 
 
+def test_decode_mesh_with_batched_tensor_latent():
+    """Verify single-item batched tensor (1, 1024) is unwrapped to (1024,) before decoding."""
+    decode_calls = []
+
+    def fake_decode(transmitter, latent):
+        decode_calls.append(latent)
+        return FakeShapEMesh()
+
+    adapter = ShapEInferenceAdapter(device="cpu")
+
+    # 1. Batched 2D FakeTensor of shape (1, 1024) -> unwrapped to (1024,)
+    batched_latent = FakeTensor(np.zeros((1, 1024)))
+    adapter.decode_mesh(
+        latent=batched_latent,
+        transmitter="fake-transmitter",
+        decode_latent_mesh_fn=fake_decode,
+    )
+    assert len(decode_calls) == 1
+    assert getattr(decode_calls[0], "shape") == (1024,)
+
+    # 2. Unbatched 1D FakeTensor of shape (1024,) - must NOT be unwrapped to scalar
+    decode_calls.clear()
+    unbatched_latent = FakeTensor(np.zeros(1024))
+    adapter.decode_mesh(
+        latent=unbatched_latent,
+        transmitter="fake-transmitter",
+        decode_latent_mesh_fn=fake_decode,
+    )
+    assert len(decode_calls) == 1
+    assert getattr(decode_calls[0], "shape") == (1024,)
+
+    # 3. Single-item tuple
+    decode_calls.clear()
+    tuple_latent = ("latent-tuple-item",)
+    adapter.decode_mesh(
+        latent=tuple_latent,
+        transmitter="fake-transmitter",
+        decode_latent_mesh_fn=fake_decode,
+    )
+    assert len(decode_calls) == 1
+    assert decode_calls[0] == "latent-tuple-item"
+
+
 def test_to_trimesh_from_shap_e_mesh():
     adapter = ShapEInferenceAdapter(device="cpu")
     raw = FakeShapEMesh()
@@ -292,6 +417,73 @@ def test_to_trimesh_passes_existing_trimesh():
     adapter = ShapEInferenceAdapter(device="cpu")
     existing = trimesh.creation.box()
     assert adapter.to_trimesh(existing) is existing
+
+
+def test_to_trimesh_preserves_vertex_channels():
+    """Verify valid vertex_channels dict from Shap-E is converted to mesh.visual.vertex_colors."""
+    adapter = ShapEInferenceAdapter(device="cpu")
+    box = trimesh.creation.box()
+    num_verts = len(box.vertices)
+
+    # Red vertex colors in [0.0, 1.0] range
+    r = np.ones(num_verts, dtype=np.float32)
+    g = np.zeros(num_verts, dtype=np.float32)
+    b = np.zeros(num_verts, dtype=np.float32)
+    channels = {"R": r, "G": g, "B": b}
+
+    raw = FakeShapEMesh(verts=box.vertices, faces=box.faces, vertex_channels=channels)
+    tm = adapter.to_trimesh(raw)
+
+    assert isinstance(tm, trimesh.Trimesh)
+    assert tm.visual.kind == "vertex"
+    assert tm.visual.vertex_colors.shape == (num_verts, 4)
+    # Check that red channel is 255, others 0, alpha 255
+    assert (tm.visual.vertex_colors[:, 0] == 255).all()
+    assert (tm.visual.vertex_colors[:, 1] == 0).all()
+    assert (tm.visual.vertex_colors[:, 2] == 0).all()
+    assert (tm.visual.vertex_colors[:, 3] == 255).all()
+
+
+def test_to_trimesh_preserves_direct_vertex_colors_attribute():
+    """Verify valid vertex_colors array on decoded mesh is attached to trimesh."""
+    adapter = ShapEInferenceAdapter(device="cpu")
+    box = trimesh.creation.box()
+    num_verts = len(box.vertices)
+
+    # RGBA uint8 colors
+    colors = np.full((num_verts, 4), 180, dtype=np.uint8)
+    raw = FakeShapEMesh(verts=box.vertices, faces=box.faces, vertex_colors=colors)
+    tm = adapter.to_trimesh(raw)
+
+    assert tm.visual.kind == "vertex"
+    assert tm.visual.vertex_colors.shape == (num_verts, 4)
+    assert (tm.visual.vertex_colors[:, 0] == 180).all()
+
+
+def test_to_trimesh_rejects_invalid_vertex_colors_without_fabrication():
+    """Verify mismatched, non-finite, or invalid colors are dropped and never fabricated."""
+    adapter = ShapEInferenceAdapter(device="cpu")
+    box = trimesh.creation.box()
+    num_verts = len(box.vertices)
+
+    # Case 1: Length mismatch (num_verts + 2 colors)
+    bad_length = np.ones((num_verts + 2, 3), dtype=np.float32)
+    mesh_bad_len = FakeShapEMesh(verts=box.vertices, faces=box.faces, vertex_colors=bad_length)
+    tm1 = adapter.to_trimesh(mesh_bad_len)
+    assert tm1.visual.kind != "vertex"
+
+    # Case 2: Non-finite colors (contains NaN)
+    nan_colors = np.ones((num_verts, 3), dtype=np.float32)
+    nan_colors[0, 0] = np.nan
+    mesh_nan = FakeShapEMesh(verts=box.vertices, faces=box.faces, vertex_colors=nan_colors)
+    tm2 = adapter.to_trimesh(mesh_nan)
+    assert tm2.visual.kind != "vertex"
+
+    # Case 3: Out-of-bounds float colors (negative)
+    oob_colors = np.full((num_verts, 3), -5.0, dtype=np.float32)
+    mesh_oob = FakeShapEMesh(verts=box.vertices, faces=box.faces, vertex_colors=oob_colors)
+    tm3 = adapter.to_trimesh(mesh_oob)
+    assert tm3.visual.kind != "vertex"
 
 
 # ---------------------------------------------------------------------------
