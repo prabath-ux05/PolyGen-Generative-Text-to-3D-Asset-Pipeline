@@ -224,6 +224,7 @@ def test_sample_latents_passes_prompt_and_params():
     assert sampled_kwargs["clip_denoised"] is True
     assert sampled_kwargs["use_karras"] is True
     assert sampled_kwargs["use_fp16"] is False  # cpu device
+    assert str(sampled_kwargs["device"]) == "cpu"
 
 
 def test_sample_latents_cuda_oom_handling():

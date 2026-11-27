@@ -1,7 +1,9 @@
 """Pipeline orchestrator coordinating end-to-end Text-to-3D asset generation."""
 
 import logging
+import threading
 from pathlib import Path
+from typing import Any, Optional
 from uuid import UUID
 
 from ai_generation.exporter import MeshExporter
@@ -47,6 +49,12 @@ def sanitize_pipeline_error(exc: Exception) -> str:
     if isinstance(exc, MeshValidationError):
         return "Generated 3D geometry failed mesh quality validation."
 
+    if "CUDA out of memory" in msg or "out of memory" in msg.lower():
+        return "3D asset generation ran out of GPU memory. Please try again with a simpler prompt."
+
+    if "Shap-E is not installed" in msg or "not installed" in msg.lower():
+        return "The neural generation engine is not available on this server."
+
     return "An internal error occurred during 3D asset generation."
 
 
@@ -57,12 +65,36 @@ class GenerationPipelineOrchestrator:
         self,
         job_service: GenerationJobService | None = None,
         output_dir: Path | str | None = None,
+        neural_adapter: Any | None = None,
+        exporter: Any | None = None,
     ):
         self.job_service = job_service or generation_job_service
         self.output_dir = Path(output_dir or DEFAULT_OUTPUT_DIR)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.mesh_validator = MeshValidator()
-        self.exporter = MeshExporter(output_dir=self.output_dir)
+        self._exporter: Any | None = exporter
+        self._neural_adapter = neural_adapter
+        self._inference_lock = threading.Lock()
+
+    @property
+    def exporter(self) -> Any:
+        """Return the mesh exporter, dynamically respecting output_dir or custom exporter."""
+        if self._exporter is not None:
+            return self._exporter
+        return MeshExporter(output_dir=self.output_dir)
+
+    @exporter.setter
+    def exporter(self, val: Any) -> None:
+        self._exporter = val
+
+    @property
+    def neural_adapter(self) -> Any:
+        """Lazily initialize and return the neural inference adapter."""
+        if self._neural_adapter is None:
+            from ai_generation.models.shap_e_adapter import ShapEInferenceAdapter
+
+            self._neural_adapter = ShapEInferenceAdapter()
+        return self._neural_adapter
 
     def run_pipeline(
         self,
@@ -108,6 +140,15 @@ class GenerationPipelineOrchestrator:
             # 3. Adapter selection
             if adapter_name == "synthetic":
                 raw_mesh = SyntheticGeometryAdapter.generate(prompt=prompt)
+            elif adapter_name == "neural":
+                # Strictly serialize neural inference to protect GPU VRAM (RTX 2050 4GB budget)
+                with self._inference_lock:
+                    if hasattr(self.neural_adapter, "generate") and callable(
+                        self.neural_adapter.generate
+                    ):
+                        raw_mesh = self.neural_adapter.generate(prompt=prompt)
+                    else:
+                        raw_mesh = self.neural_adapter(prompt=prompt)
             else:
                 raise PipelineExecutionError(
                     f"Adapter '{adapter_name}' is not currently available or configured."
@@ -133,8 +174,7 @@ class GenerationPipelineOrchestrator:
             uv_mesh.visual.material = material
 
             # 8. GLB mesh export
-            exporter = MeshExporter(output_dir=self.output_dir)
-            export_path = exporter.export(
+            export_path = self.exporter.export(
                 mesh=uv_mesh,
                 file_format=output_format.value,
                 filename=str(parsed_id),

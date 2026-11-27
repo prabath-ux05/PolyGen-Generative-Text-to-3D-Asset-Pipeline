@@ -219,6 +219,14 @@ class ShapEInferenceAdapter:
 
         try:
             use_fp16 = self.device != "cpu"
+            torch_device = None
+            try:
+                import torch
+
+                torch_device = torch.device(self.device)
+            except Exception:
+                pass
+
             latents = sample_latents_fn(
                 batch_size=batch_size,
                 model=active_model,
@@ -233,6 +241,7 @@ class ShapEInferenceAdapter:
                 sigma_min=1e-3,
                 sigma_max=160,
                 s_churn=0,
+                device=torch_device,
             )
             return latents
         except Exception as exc:
